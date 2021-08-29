@@ -1,17 +1,17 @@
 @preprocessor typescript
 
 @{%
-// const deepFlatten = (arr: any) =>
-//   [].concat(...arr.map((v: any) => (Array.isArray(v) ? deepFlatten(v) : v)));
+const deepFlatten = (arr: any) =>
+  [].concat(...arr.map((v: any) => (Array.isArray(v) ? deepFlatten(v) : v)));
 
-// function flat_string(d: any) {
-//   if (d) {
-//     if (Array.isArray(d))
-//       return deepFlatten(d).join("");
-//     return d;
-//   }
-//   return "";
-// }
+function flat_string(d: any) {
+  if (d) {
+    if (Array.isArray(d))
+      return deepFlatten(d).join("");
+    return d;
+  }
+  return "";
+}
 %}
 
 ## <https://datatracker.ietf.org/doc/html/rfc5322#section-3.1>
@@ -72,7 +72,11 @@ atext           -> ALPHA | DIGIT |    # Printable US-ASCII
                    "|" | "}" |
                    "~"
 
-atom            -> CFWS:? atext:+ CFWS:?
+atom            -> CFWS:? atext:+ CFWS:? {%
+                    function(d) {
+                        return { atom: flat_string(d[1]) };
+                    }
+                  %}
 
 dot_atom_text   -> atext:+ ("." atext:+):*
 
