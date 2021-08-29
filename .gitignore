@@ -1,0 +1,5 @@
+*.js
+*~
+dist
+lib/grammar.ts
+node_modules
