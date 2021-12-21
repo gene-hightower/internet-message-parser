@@ -1,9 +1,9 @@
-//const RE2 = require("re2");
+const RE2 = require("re2");
 
 import dedent from 'ts-dedent';
 
 const data = dedent`
-From:
+From: 
  Gene Q. (a comment) Public
  <gene@digilicious.com>
 To: "almost anybody"@example.com
@@ -15,7 +15,7 @@ Message body. Message body. Message body...
 ...more body...
 ...more body...
 ...more body...
-Message body.
+end of body.
 `.replace(/\n/g, '\r\n');
 
 
@@ -29,31 +29,30 @@ const buf = Buffer.from(data, "utf-8");
 const match = re.exec(buf)
 */
 
-//const re = /^(?<field_name>[^\x00-\x20\:]+)(:?[ \t])*\:(?<field_body>(:?.*?(:?\r\n[ \t].*?)*)(:?\r\n))/sg;
-//const re = new RegExp('(?<field_name>[^\\x00-\\x20\\:]+)(:?[ \\t])*\\:(?<field_body>(:?.*?(:?\\r\\n[ \\t].*?)*)(:?\\r\\n))','sg');
-//const re = new RE2('(?<header>(?<field_name>[^\\x00-\\x20\\:]+)(:?[ \\t])*\\:(?<field_body>(:?.*?(:?\\r\\n[ \\t].*?)*)(:?\\r\\n)))*','s');
-const re = new RegExp('^(?<header>(?<field_name>[^\\x00-\\x20\\:]+)(:?[ \\t])*\\:(?<field_body>(:?.*?(:?\\r\\n[ \\t].*?)*)(:?\\r\\n)))*(:?\\r\\n)','s');
+const re = new RE2('(?<header>' +
+                     '(?<field_name>[^\\x00-\\x20\\:]+)' +
+                       '(?:(?:\\r\\n)?(?:\\x20|\\x09))*' +
+                       '\\:' +
+                     '(?<field_body>' +
+                       '(?:(?:\\r\\n)?(?:\\x20|\\x09).*)*(:?\\r\\n))' +
+                   ')' +
+                   '|(?<body>\\r\\n[\\x00-\\xFF]*$)', 'gs');
+
+var reconstituted = '';
 
 let match;
-//while ((match = re.exec(Buffer.from(data, "utf-8"))) !== null) {
-//while ((match = re.exec(data)) !== null) {
-match = re.exec(data);
-if (match) {
-    console.log(`Found ${match[0]} start=${match.index} end=${re.lastIndex}.`);
+while ((match = re.exec(Buffer.from(data, "utf-8"))) !== null) {
 
-    if (match.groups)
-        console.log(`field_name: ${match.groups.field_name}`);
-
-    if (match.groups)
-        console.log(`field_body: ${match.groups.field_body}`);
-
-    var i = 0;
-    for (const m of match) {
-        if (Buffer.isBuffer(m)) {
-            console.log(`${i}: '${m.toString()}'`);
-        }
-        i += 1;
+    if ( match.groups.header ) {
+        reconstituted = reconstituted + match.groups.header.toString();
+        console.log(`${match.groups.field_name}: ${match.groups.field_body.toString().trim()}`);
     }
+    if ( match.groups.body ) {
+        reconstituted = reconstituted + match.groups.body.toString();
+        console.log(`${match.groups.body}`);
+    }
+}
 
-    console.log(match);
+if (data !== reconstituted) {
+    console.log(`data !== reconstituted`);
 }
