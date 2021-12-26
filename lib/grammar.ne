@@ -246,7 +246,7 @@ date_time       -> ( day_of_week "," ):? date time CFWS:?
 
 day_of_week     -> (FWS:? day_name) ##| obs_day_of_week
 
-day_name        -> "Mon"i | "Tue"i | "Wed"i | "Thu" | "Fri"i | "Sat"i | "Sun"i
+day_name        -> "Mon"i | "Tue"i | "Wed"i | "Thu"i | "Fri"i | "Sat"i | "Sun"i
 
 date            -> day month year
 
@@ -257,7 +257,7 @@ FOURDIGIT       -> DIGIT DIGIT DIGIT DIGIT
 day             -> (FWS:? TWODIGIT FWS) ## obs_day
 
 month           -> "Jan"i | "Feb"i | "Mar"i | "Apr"i |
-                   "May"i | "Jun"i | "Jul" | "Aug"i |
+                   "May"i | "Jun"i | "Jul"i | "Aug"i |
                    "Sep"i | "Oct"i | "Nov"i | "Dec"i
 
 year            -> (FWS FOURDIGIT FWS) ##| obs_year
