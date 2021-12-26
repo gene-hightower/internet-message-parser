@@ -32,6 +32,7 @@
   "dependencies": {
     "moo": "^0.5.1",
     "nearley": "^2.20.1",
+    "peggy": "^1.2.0",
     "re2-latin1": "^1.17.2",
     "ts-dedent": "^2.2.0"
   },
