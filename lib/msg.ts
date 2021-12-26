@@ -1,18 +1,13 @@
 "use strict";
 
-// const punycode = require('punycode');
-const nearley = require("nearley");
-
-import { default as myGrammar } from "./grammar";
-myGrammar.ParserStart = "fields";
-const grammar = nearley.Grammar.fromCompiled(myGrammar);
+const message = require('../../lib/message');
 
 const fs = require('fs');
 const path = require('path');
 
-import { Message, unfold } from "./Message";
+import { Message } from "./Message";
 
-const dir = '/home/gene/duckduckgo-Maildir/Inbox/cur';
+const dir = '/home/gene/Maildir/cur';
 
 var count = 0;
 
@@ -25,7 +20,7 @@ for (const filename of fs.readdirSync(dir)) {
 
   try {
     if (isFile) {
-      console.log(`${filepath}`);
+      // console.log(`${filepath}`);
       const data = fs.readFileSync(filepath);
       const msg = new Message(data);
 
@@ -33,21 +28,14 @@ for (const filename of fs.readdirSync(dir)) {
         if (hdr.name.startsWith("X") || hdr.name.startsWith("x")) {
           continue;             // skip X- fields
         }
-        const unfolded = unfold(hdr.full_header);
         try {
-          const parser = new nearley.Parser(grammar);
-          console.log(`feed (${unfolded})`);
-          parser.feed(unfolded);
-          if (parser.results.length !== 1) {
-            console.error(`###### address parsing failed: ambiguous grammar`);
-            console.error(`###### unfolded === "${unfolded}"`);
-          }
-          for (const result of parser.results) {
-            console.log(`result ${result}`);
-          }
+          // const results = message.parse(hdr.full_header);
+          message.parse(hdr.full_header);
+          // console.log(`${results}`);
         } catch (e) {
-          console.error(`###### address parsing failed: ${e}`);
-          console.error(`###### unfolded === "${unfolded}"`);
+          console.error(`###### file: ${filepath}`);
+          console.error(`###### parsing failed: ${e}`);
+          console.error(`###### "${hdr.full_header}"`);
         }
       }
       if (!msg.body) {
