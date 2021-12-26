@@ -23,13 +23,13 @@ const message_re = new RE2('(?<header>' +
                            '(?<body>\\r?\\n[\\x00-\\xFF]*$)', 'gs');
 
 export function unfold(field_body: string) {
- return field_body.replace(/(?:(?:\r?\n)?(?:\x20|\x09))+/g, ' ').trim();
+ return field_body.replace(/(?:(?:\r?\n)(?:\x20|\x09))/g, ' ').trim();
 }
 
 export interface Field {
   name: string;
   value: string;
-  header: string;
+  full_header: string;
 }
 
 export interface FieldIdx  {
@@ -65,7 +65,7 @@ export class Message {
         this.headers.push({
           name: match.groups.field_name.toString(),
           value: match.groups.field_body.toString().trim(),
-          header: match.groups.header,
+          full_header: match.groups.header.toString(),
         });
         next_match += match.groups.header.length;
       } else if (match.groups.body) {

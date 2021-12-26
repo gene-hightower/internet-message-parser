@@ -4,7 +4,7 @@
 const nearley = require("nearley");
 
 import { default as myGrammar } from "./grammar";
-myGrammar.ParserStart = "structured";
+myGrammar.ParserStart = "fields";
 const grammar = nearley.Grammar.fromCompiled(myGrammar);
 
 const fs = require('fs');
@@ -13,8 +13,6 @@ const path = require('path');
 import { Message, unfold } from "./Message";
 
 const dir = '/home/gene/duckduckgo-Maildir/Inbox/cur';
-
-const content_type = "content-type";
 
 var count = 0;
 
@@ -30,25 +28,26 @@ for (const filename of fs.readdirSync(dir)) {
       console.log(`${filepath}`);
       const data = fs.readFileSync(filepath);
       const msg = new Message(data);
-      if (msg.hdr_idx[content_type]) {
-        for (const rcv of msg.hdr_idx[content_type]) {
-          console.log(`Content-Type: ${rcv.value}`);
+
+      for (const hdr of msg.headers) {
+        if (hdr.name.startsWith("X") || hdr.name.startsWith("x")) {
+          continue;             // skip X- fields
+        }
+        const unfolded = unfold(hdr.full_header);
+        try {
           const parser = new nearley.Parser(grammar);
-          parser.feed(`Content-Type: ${unfold(rcv.value)}`);
+          console.log(`feed (${unfolded})`);
+          parser.feed(unfolded);
           if (parser.results.length !== 1) {
-            console.error("###### address parsing failed: ambiguous grammar");
+            console.error(`###### address parsing failed: ambiguous grammar`);
+            console.error(`###### unfolded === "${unfolded}"`);
           }
           for (const result of parser.results) {
-            console.log(result);
+            console.log(`result ${result}`);
           }
-        }
-      } else {
-        console.log(`no Received: header`);
-      }
-      for (const hdr of msg.headers) {
-        const name = hdr.name.toString().toLowerCase();
-        if (name === 'to' || name === 'from' || name === 'subject') {
-          console.log(`${hdr.name.toString()}: ${hdr.value.toString()}`);
+        } catch (e) {
+          console.error(`###### address parsing failed: ${e}`);
+          console.error(`###### unfolded === "${unfolded}"`);
         }
       }
       if (!msg.body) {
