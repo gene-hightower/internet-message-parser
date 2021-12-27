@@ -7,7 +7,7 @@ const path = require('path');
 
 import { Message } from "./Message";
 
-const dir = '/home/gene/Maildir/cur';
+const dir = '/home/gene/Maildir/.Junk/cur';
 
 var count = 0;
 
@@ -24,16 +24,21 @@ for (const filename of fs.readdirSync(dir)) {
       const data = fs.readFileSync(filepath);
       const msg = new Message(data);
 
+      console.error(`###### file: ${filepath}`);
+
       for (const hdr of msg.headers) {
         if (hdr.name.startsWith("X") || hdr.name.startsWith("x")) {
           continue;             // skip X- fields
         }
+        if (hdr.name.toLowerCase() === "delivered-to") {
+          continue;
+        }
         try {
-          // const results = message.parse(hdr.full_header);
-          message.parse(hdr.full_header);
-          // console.log(`${results}`);
+          const results = message.parse(hdr.full_header);
+          // message.parse(hdr.full_header);
+          // console.log(`${JSON.stringify(results)}`);
+          console.log(`${results[0][0]}`);
         } catch (e) {
-          console.error(`###### file: ${filepath}`);
           console.error(`###### parsing failed: ${e}`);
           console.error(`###### "${hdr.full_header}"`);
         }
