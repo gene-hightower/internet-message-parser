@@ -50,7 +50,7 @@ export class Message {
 
     var next_match = 0;         // offset where we expect to find the next match
 
-    while ((match = message_re.exec(data)) !== null) {
+    while (match = message_re.exec(data)) {
       const match_length = match[0].length;
 
       /* Check to see we haven't skipped over any bytes that did not
