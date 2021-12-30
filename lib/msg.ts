@@ -51,50 +51,60 @@ for (const filename of fs.readdirSync(dir)) {
         if (hdr.name.startsWith("X") || hdr.name.startsWith("x")) {
           continue;             // skip X- fields
         }
-        const headers_to_ignore = [
-          "arc-authentication-results",
-          "arc-message-signature",
-          "arc-seal",
-          "autocrypt",
-          "content-class",
-          "delivered-to",
-          "dkim-signature",
-          "domainkey-signature",
-          "duck-original-sender",
-          "errors-to",
-          "face",
-          "importance",
-          "list-archive",
-          "list-help",
-          "list-id",
-          "list-owner",
-          "list-post",
-          "list-software",
-          "list-subscribe",
-          "list-unsubscribe",
-          "list-unsubscribe-post",
-          "list-url",
-          "organization",
-          "precedence",
-          "received-spf",
+
+        const structured_headers = [
+          "accept-language",
+          "authentication-results",
+          "auto-submitted",
+          "bcc",
+          "cc",
+          "comments",
+          "content-description",
+          "content-disposition",
+          "content-id",
+          "content-language",
+          "content-location",
+          "content-transfer-encoding",
+          "content-type",
+          "date",
+          "from",
+          "in-reply-to",
+          "keywords",
+          "message-id",
+          "mime-version",
+          "received",
+          "references",
+          "reply-to",
+          "require-recipient-valid-since",
+          "resent-bcc",
+          "resent-cc",
+          "resent-date",
+          "resent-from",
+          "resent-message-id",
+          "resent-sender",
+          "resent-to",
           "return-path",
-          "thread-index",
-          "user-agent",
+          "sender",
+          "subject",
+          "to",
         ];
         const key = hdr.name.toLowerCase()
-        if (headers_to_ignore.includes(key)) {
+        if (!structured_headers.includes(key)) {
           continue;
         }
         try {
           const results = message.parse(hdr.full_header);
           // message.parse(hdr.full_header);
           // console.log(`${JSON.stringify(results)}`);
-          if (results[0] && results[0][0] && typeof results[0][0] !== 'string') {
-            console.log(flat_string(results[0][0]));
-            if (results[0] && results[0][3]) {
-              console.log(`${flat_string(results[0][3][0])}`);
-            } else {
-              console.log(results);
+
+          if (results[0] && results[0][0]) {
+            if (typeof results[0][0] !== 'string') {
+              console.log(flat_string(results[0][0]));
+              if (results[0] && results[0][3]) {
+                console.log(`${flat_string(results[0][3][0])}`);
+              } else {
+                console.log(results);
+              }
             }
           }
         } catch (e) {
