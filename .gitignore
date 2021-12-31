@@ -2,4 +2,5 @@
 *~
 dist
 lib/grammar.ts
+lib/message-parser.ts
 node_modules

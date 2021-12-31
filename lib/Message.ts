@@ -1,4 +1,4 @@
-"use strict";
+const _ = require('lodash');
 
 // Version of node-re2 that uses latin1; searching by byte value, not
 // by Unicode code-points.
@@ -30,6 +30,7 @@ export interface Field {
   name: string;
   value: string;
   full_header: string;
+  parsed: any;
 }
 
 export interface FieldIdx  {
@@ -40,6 +41,7 @@ export class Message {
   headers: Field[];
   body: Buffer | null;
   hdr_idx: FieldIdx;
+  parts: Message[] | null;
 
   constructor(data: Buffer) {
     let match : any;
@@ -47,6 +49,7 @@ export class Message {
     this.headers = [];
     this.body = null;
     this.hdr_idx = {};
+    this.parts = null;
 
     var next_match = 0;         // offset where we expect to find the next match
 
@@ -66,6 +69,7 @@ export class Message {
           name: match.groups.field_name.toString(),
           value: match.groups.field_body.toString().trim(),
           full_header: match.groups.header.toString(),
+          parsed: undefined,
         });
         next_match += match.groups.header.length;
       } else if (match.groups.body) {
@@ -86,5 +90,39 @@ export class Message {
         this.hdr_idx[key].push(hdr);
       }
     }
+  }
+
+  find_parts(boundary: string) {
+    if (this.body === null) {
+      throw new Error(`no body to find parts in`);
+    }
+    console.log(`###### find_parts(${boundary})`);
+
+    // prettier-ignore
+    const multi_re = new RE2('(?<start>\r?\n--' + _.escapeRegExp(boundary) + '[ \t]*\r?\n)|' +
+                             '(?<end>\r?\n--' + _.escapeRegExp(boundary) + '--[ \t]*\r?\n)', 'gs');
+
+    var parts: Buffer[];
+
+    var start_found = false;
+
+    let match : any;
+    while (match = multi_re.exec(this.body)) {
+      const match_length = match[0].length;
+
+      if (match.groups.start) {
+        console.log(`###### found start`);
+        start_found = true;
+      } else if (match.groups.end) {
+        if (!start_found) {
+          console.log(`###### start NEVER FOUND!`);
+        }
+        console.log(`###### found end`);
+        return true;
+      }
+    }
+
+    console.log(`###### end NEVER FOUND!`);
+    return false;
   }
 }

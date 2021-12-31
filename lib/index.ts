@@ -1,5 +1,3 @@
-'use strict';
-
 const nearley  = require('nearley');
 
 import { default as myGrammar } from './grammar';
