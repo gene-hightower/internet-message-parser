@@ -38,21 +38,30 @@ export interface FieldIdx  {
 }
 
 export class Message {
+  data: Buffer;
   headers: Field[];
-  body: Buffer | null;
   hdr_idx: FieldIdx;
+
+  body: Buffer | null;
+
+  preamble: Buffer | null;
   parts: Message[] | null;
+  epilogue: Buffer | null;
 
   constructor(data: Buffer) {
-    let match : any;
-
+    this.data = data;
     this.headers = [];
-    this.body = null;
     this.hdr_idx = {};
+
+    this.body = null;
+
+    this.preamble = null;
     this.parts = null;
+    this.epilogue = null;
 
     var next_match = 0;         // offset where we expect to find the next match
 
+    var match;
     while (match = message_re.exec(data)) {
       const match_length = match[0].length;
 
@@ -96,33 +105,49 @@ export class Message {
     if (this.body === null) {
       throw new Error(`no body to find parts in`);
     }
-    console.log(`###### find_parts(${boundary})`);
 
     // prettier-ignore
     const multi_re = new RE2('(?<start>\r?\n--' + _.escapeRegExp(boundary) + '[ \t]*\r?\n)|' +
                              '(?<end>\r?\n--' + _.escapeRegExp(boundary) + '--[ \t]*\r?\n)', 'gs');
 
-    var parts: Buffer[];
-
     var start_found = false;
+    var end_found = false;
+    var last_offset = 0;
 
-    let match : any;
+    var match;
     while (match = multi_re.exec(this.body)) {
-      const match_length = match[0].length;
 
       if (match.groups.start) {
-        console.log(`###### found start`);
         start_found = true;
-      } else if (match.groups.end) {
-        if (!start_found) {
-          console.log(`###### start NEVER FOUND!`);
+        if (last_offset === 0) {
+          if (match.index !== 0) {
+            this.preamble = this.body.slice(0, match.index);
+          }
+        } else {
+          this.parts = [...(this.parts || []), new Message(this.body.slice(last_offset, match.index))];
         }
-        console.log(`###### found end`);
-        return true;
+      } else if (match.groups.end) {
+        if (end_found) {
+          throw new Error(`Second copy of close-delimiter at offset ${match.index}.`);
+        }
+        end_found = true;
+        if (!start_found || last_offset === 0) {
+          throw new Error(`A close-delimiter found at offset ${match.index} before any dash-boundary.`);
+        }
+        this.parts = [...(this.parts || []), new Message(this.body.slice(last_offset, match.index))];
       }
+      last_offset = multi_re.lastIndex;
+
+    }
+    if (last_offset != this.body.length) {
+      this.epilogue = this.body.slice(last_offset);
     }
 
-    console.log(`###### end NEVER FOUND!`);
-    return false;
+    if (!start_found) {
+      throw new Error(`No dash-boundary (${boundary}) found in message.`);
+    }
+    if (!end_found) {
+      throw new Error(`No close-delimiter found in this message.`);
+    }
   }
 }
