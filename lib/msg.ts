@@ -7,8 +7,8 @@ const path = require('path');
 import { Message } from "./Message";
 
 //const dir = '/home/gene/Maildir/.Junk/cur';
-//const dir = '/home/gene/Maildir/cur';
-const dir = '/tmp/Maildir/cur';
+const dir = '/home/gene/Maildir/cur';
+//const dir = '/tmp/Maildir/cur';
 
 const bcc = "bcc";
 const cc = "cc";
@@ -73,6 +73,23 @@ function flat_string(d: any) {
   return "";
 }
 
+function unquote(quoted_string: string) {
+  return quoted_string.substr(1).substr(0, quoted_string.length - 2);
+}
+
+function requote(unquoted_string: string) {
+  return `"${unquoted_string}"`;
+}
+
+function canonicalize_string(unquoted: string) {
+  const unescaped = unquoted.replace(/(?:\\(.))/g, "$1");
+  return unescaped.replace(/(?:(["\\]))/g, "\\$1"); // re-escape
+}
+
+function canonicalize_quoted_string(quoted_string: string) {
+  return requote(canonicalize_string(unquote(quoted_string)));
+}
+
 function is_ascii(charset: string): boolean {
   // <https://www.iana.org/assignments/character-sets/character-sets.xhtml>
   const ascii_aliases = [
@@ -127,6 +144,8 @@ for (const filename of fs.readdirSync(dir)) {
               console.error(hdr.full_header);
             }
             if (hdr.parsed[0] && hdr.parsed[0][0] && typeof hdr.parsed[0][0] !== 'string') {
+              // This is where a structured header is parsed as an “optional_field” so
+              // hdr.parsed[0][0] is an array containing the field name.
               console.error(`###### file: ${filepath}`);
               console.error(`###### parse failed for: ${flat_string(hdr.parsed[0][0])}`);
               console.error(hdr.parsed);
@@ -166,8 +185,9 @@ for (const filename of fs.readdirSync(dir)) {
         continue;
       }
 
-      // etc. check for sender if more than one address listed in From:
-      // check for a To: or a Cc: or a Bcc:
+      // Could be more strict; for example check for sender if more
+      // than one address listed in From:, could check for a To: or a
+      // Cc: or a Bcc:, also could check for a Date: header.
 
       const ct = msg.hdr_idx[content_type];
       const mv = msg.hdr_idx[mime_version];
@@ -184,10 +204,8 @@ for (const filename of fs.readdirSync(dir)) {
           continue;
         }
 
-        console.log(`###### ct === ${JSON.stringify(ct[0])}`);
-
         if (!mv || !mv[0] || !mv[0].parsed) {
-          // If no MIME-version, Content-Type must be text/plain
+          // If no valid MIME-version, Content-Type must be text/plain
           if (ct[0].parsed.type !== 'text' || ct[0].parsed.subtype !== 'plain') {
             console.error(`###### file: ${filepath}`);
             console.error(`###### without MIME-Version, Content-Type: must be text/plain`);
@@ -218,7 +236,7 @@ for (const filename of fs.readdirSync(dir)) {
                 console.error(`###### Content-Type: with multiple boundary parameters`);
                 continue;
               }
-              boundary = param.boundary;
+              boundary = param.boundary.trim();
             }
           }
           if (boundary === '') {
@@ -226,10 +244,34 @@ for (const filename of fs.readdirSync(dir)) {
             console.error(`###### Content-Type: multipart with no boundary`);
             continue;
           }
+          if (boundary.startsWith('"')) {
+            boundary = canonicalize_string(unquote(boundary));
+          }
 
-          if (!msg.find_parts(boundary)) {
+          try {
+            msg.find_parts(boundary)
+          } catch (ex) {
             console.error(`###### file: ${filepath}`);
-            console.error(`###### find_parts(${boundary}) failed`);
+            console.error(`###### find_parts(${boundary}) failed: ${ex}`);
+          }
+
+          console.log(`----- Multipart file: ${filepath} -----`);
+          if (msg.preamble) {
+            console.log(`preamble found`);
+          }
+          if (msg.parts) {
+            console.log(`${msg.parts.length} parts found`);
+
+            for (const part of msg.parts) {
+              console.log(`-----`);
+              for (const hdr of part.headers) {
+                console.log(`${hdr.name}: ${hdr.value}`);
+              }
+            }
+          }
+
+          if (msg.epilogue) {
+            console.log(`epilogue found`);
           }
         }
       }
