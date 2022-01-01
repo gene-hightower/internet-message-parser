@@ -59,7 +59,8 @@ const structured_headers = [
   to,
 ];
 
-var count = 0;
+var count_messages = 0;
+var count_multipart = 0;
 
 const deepFlatten = (arr: any) =>
   [].concat(...arr.map((v: any) => (Array.isArray(v) ? deepFlatten(v) : v)));
@@ -174,11 +175,6 @@ for (const filename of fs.readdirSync(dir)) {
         continue;
       }
 
-      if (!msg.hdr_idx[subject]) {
-        console.error(`###### file: ${filepath}`);
-        console.error(`###### missing Subject: header`);
-        // continue; // not fatal, I guess
-      }
       if (msg.hdr_idx[subject] && msg.hdr_idx[subject].length > 1) {
         console.error(`###### file: ${filepath}`);
         console.error(`###### too many Subject: headers`);
@@ -204,19 +200,29 @@ for (const filename of fs.readdirSync(dir)) {
           continue;
         }
 
+        if (mv && mv[0] && !mv[0].parsed) {
+          console.log(`###### file: ${filepath}`);
+          console.log(`###### unpaseable MIME-Version, ${mv[0]}`);
+        }
+        if (mv && mv.length > 1) {
+          console.log(`###### file: ${filepath}`);
+          console.log(`###### more than one MIME-Version`);
+        }
+
+        /*
         if (!mv || !mv[0] || !mv[0].parsed) {
           // If no valid MIME-version, Content-Type must be text/plain
           if (ct[0].parsed.type !== 'text' || ct[0].parsed.subtype !== 'plain') {
-            console.error(`###### file: ${filepath}`);
-            console.error(`###### without MIME-Version, Content-Type: must be text/plain`);
-            continue;
+            console.log(`###### file: ${filepath}`);
+            console.log(`###### without MIME-Version, Content-Type: should be text/plain`);
+            // continue;
           }
           // And charset must be US-ASCII.
           for (const param of ct[0].parsed.parameters) {
             if (param.charset && !is_ascii(param.charset)) {
-              console.error(`###### file: ${filepath}`);
-              console.error(`###### without MIME-Version, Content-Type: charset must be US-ASCII`);
-              continue;
+              console.log(`###### file: ${filepath}`);
+              console.log(`###### without MIME-Version, Content-Type: charset should be US-ASCII`);
+              // continue;
             }
           }
           // If we pass the above two tests, we're okay.
@@ -224,10 +230,12 @@ for (const filename of fs.readdirSync(dir)) {
           // console.error(`###### Content-Type: with no MIME-Version:`);
           // continue;
         }
+        */
 
         // const cte = msg.hdr_idx[content_transfer_encoding];
 
         if (ct[0].parsed.type === 'multipart') {
+          count_multipart += 1;
           var boundary = '';
           for (const param of ct[0].parsed.parameters) {
             if (param.boundary) {
@@ -276,11 +284,12 @@ for (const filename of fs.readdirSync(dir)) {
         }
       }
 
-      count += 1;
+      count_messages += 1;
     }
   } catch (ex) {
     console.error(ex);
   }
 }
 
-console.log(`${count} messages processed`);
+console.log(`${count_messages} messages processed`);
+console.log(`${count_multipart} multipart messages`);
