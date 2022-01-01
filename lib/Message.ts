@@ -12,16 +12,6 @@ const RE2 = require("re2-latin1");
 
 // This regex will accept RFC-5322 “Obsolete Syntax.”
 
-// prettier-ignore
-const message_re = new RE2('(?<header>' +
-                             '(?<field_name>[^\\x00-\\x20\\x80-\\xFF\\:]+)' +
-                               '(?:(?:\\r?\\n)?(?:\\x20|\\x09))*' +
-                               '\\:' +
-                             '(?<field_body>' +
-                               '(?:(?:(?:\\r?\\n)?(?:\\x20|\\x09))*[\\x00-\\xFF]*?)*(?:\\r?\\n))' +
-                           ')|' +
-                           '(?<body>\\r?\\n[\\x00-\\xFF]*$)', 'gs');
-
 export function unfold(field_body: string) {
  return field_body.replace(/(?:(?:\r?\n)(?:\x20|\x09))/g, ' ').trim();
 }
@@ -60,6 +50,16 @@ export class Message {
     this.epilogue = null;
 
     var next_match = 0;         // offset where we expect to find the next match
+
+    // prettier-ignore
+    const message_re = new RE2('(?<header>' +
+                                 '(?<field_name>[^\\x00-\\x20\\x80-\\xFF\\:]+)' +
+                                   '(?:(?:\\r?\\n)?(?:\\x20|\\x09))*' +
+                                   '\\:' +
+                                 '(?<field_body>' +
+                                   '(?:(?:(?:\\r?\\n)?(?:\\x20|\\x09))*[\\x00-\\xFF]*?)*(?:\\r?\\n))' +
+                               ')|' +
+                               '(?<body>\\r?\\n[\\x00-\\xFF]*$)', 'gs');
 
     var match;
     while (match = message_re.exec(data)) {
