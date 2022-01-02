@@ -5,7 +5,7 @@ export class ContentType {
   constructor(
     public type: string,
     public subtype: string,
-    public parameters: Parameter[] | null
+    public parameters: Parameter[]
   ) {}
 
 }
