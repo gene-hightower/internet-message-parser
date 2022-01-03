@@ -331,7 +331,7 @@ export class Message {
         fs.writeSync(fd, `Content-Type: ${hdr.parsed.type}/${hdr.parsed.subtype}`);
         for (const param of hdr.parsed.parameters) {
           for (const [k, v] of Object.entries(param)) {
-            fs.writeSync(fd, `;\r\n              ${k}=${v}`);
+            fs.writeSync(fd, `;\r\n\t${k}=${v}`);
           }
         }
       } else {
