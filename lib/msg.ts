@@ -3,15 +3,15 @@ const path = require('path');
 
 import { Message, is_structured_header } from "./Message";
 
-const dir = '/home/gene/Maildir/.FB/cur';
+//const dir = '/home/gene/Maildir/.FB/cur';
 //const dir = '/home/gene/Maildir/.Junk/cur';
 //const dir = '/home/gene/Maildir/cur';
-//const dir = '/tmp/Maildir/cur';
+const dir = '/tmp/Maildir/cur';
 
 var count_messages = 0;
 var count_multipart = 0;
 
-var msg = new Message(Buffer.from(''));
+var msg = new Message(Buffer.from(''), false);
 
 for (const filename of fs.readdirSync(dir)) {
 
@@ -26,7 +26,7 @@ for (const filename of fs.readdirSync(dir)) {
       const data = fs.readFileSync(filepath);
 
       try {
-        msg = new Message(data);
+        msg = new Message(data, true);
       } catch (ex) {
         console.error(`###### file: ${filepath}`);
         console.error(`###### Message() failed: ${ex}`);
@@ -67,16 +67,17 @@ for (const filename of fs.readdirSync(dir)) {
       }
 
       const ct = msg.hdr_idx["content-type"];
-      const mv = msg.hdr_idx["mime-version"];
-
-      if (ct && !mv) {
-        // console.error(`###### file: ${filepath}`);
-        // console.error(`###### Content-Type: with no MIME-Version:`);
-      }
-
       if (ct && ct[0].parsed?.type === 'multipart') {
         count_multipart += 1;
 
+        msg.change_boundary();
+
+        const outpath = path.resolve('/tmp', filename);
+        const fd = fs.openSync(outpath, "w", 0o666);
+        msg.writeSync(fd);
+        fs.closeSync(fd);
+
+        /*
         console.log(`----- Multipart file: ${filepath} -----`);
         if (msg.preamble) {
           console.log(`preamble found`);
@@ -94,11 +95,14 @@ for (const filename of fs.readdirSync(dir)) {
         if (msg.epilogue) {
           console.log(`epilogue found`);
         }
+        */
+
       }
 
       count_messages += 1;
     }
   } catch (ex) {
+    console.error(`###### file: ${filepath}`);
     console.error(ex);
   }
 }

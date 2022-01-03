@@ -1,3 +1,6 @@
+const crypto = require("crypto");
+const fs = require('fs');
+
 import { SyntaxError, parse, structuredHeaders } from './message-parser';
 import { ContentType } from './message-types';
 
@@ -72,6 +75,14 @@ function enquote(s: string) {
   }
 }
 
+function hash(s: string): string {
+  return crypto
+    .createHash("sha256")
+    .update('6.283185307179586')
+    .update(s)
+    .digest('base64').substr(0, 22);
+}
+
 export function is_structured_header(name: string)  {
   return structuredHeaders.includes(name.toLowerCase());
 }
@@ -99,7 +110,7 @@ export class Message {
   parts: Message[];
   epilogue: Buffer | null;      // [CRLF epilogue]
 
-  constructor(data: Buffer) {
+  constructor(data: Buffer, message: boolean) {
     this.data = data;
     this.headers = [];
     this.hdr_idx = {};
@@ -113,7 +124,7 @@ export class Message {
     this.coarse_chop_();
     this.index_headers_();
     this.parse_structured_headers_();
-    this.sanity_check_headers_();
+    this.sanity_check_headers_(message);
     this.find_parts_();
   }
 
@@ -182,7 +193,6 @@ export class Message {
   }
 
   parse_structured_headers_() {
-    // Parse the structured headers.
     for (const hdr of this.headers) {
       if (is_structured_header(hdr.name)) {
         try {
@@ -195,18 +205,22 @@ export class Message {
     }
   }
 
-  sanity_check_headers_() {
-    for (const fld in required) {
-      if (this.hdr_idx[fld.toLowerCase()]) {
+  sanity_check_headers_(message: boolean) {
+    if (!message)
+      return;
+    for (const fld of required) {
+      const key = fld.toLowerCase();
+      if (!this.hdr_idx[key]) {
         throw new Error(`missing ${fld}: header`);
       }
     }
-    for (const fld in unique) {
-      if (this.hdr_idx[fld.toLowerCase()]?.length > 1) {
+    for (const fld of unique) {
+      const key = fld.toLowerCase();
+      if (this.hdr_idx[key]?.length > 1) {
         throw new Error(`too many ${fld}: headers`);
       }
     }
-    for (const fld in correct) {
+    for (const fld of correct) {
       const p = this.hdr_idx[fld.toLowerCase()];
       if (p && !p.every(f => f.parsed)) {
         throw new Error(`syntax error in ${fld}: header`);
@@ -216,14 +230,10 @@ export class Message {
     // Could check for Sender: if From: has more than one address.
   }
 
-  // <https://www.rfc-editor.org/rfc/rfc2046#section-5.1.1>
-  find_parts_() {
-    if (!this.body)             // no body, no parts
-      return;
-
+  get_boundary_() {
     const ct = this.hdr_idx["content-type"];
-    if (!ct || ct[0].parsed?.type !== 'multipart')
-      return;
+    if (!(ct && ct[0] && ct[0].parsed && ct[0].parsed.type === 'multipart'))
+      return null;
 
     var boundary = '';
     for (const param of ct[0].parsed.parameters) {
@@ -247,6 +257,18 @@ export class Message {
       throw new Error(`multipart boundary must not end with a space`);
     }
 
+    return boundary;
+  }
+
+  // <https://www.rfc-editor.org/rfc/rfc2046#section-5.1.1>
+  find_parts_() {
+    if (!this.body)             // no body, no parts
+      return;
+
+    const boundary = this.get_boundary_();
+    if (!boundary)
+      return;
+
     var start_found = false;
     var end_found = false;
     var last_offset = 0;
@@ -266,7 +288,7 @@ export class Message {
             this.preamble = this.body.slice(0, match.index);
           }
         } else {
-          this.parts.push(new Message(this.body.slice(last_offset, match.index)));
+          this.parts.push(new Message(this.body.slice(last_offset, match.index), false));
         }
       } else if (match.groups.end) {
         if (end_found) {
@@ -276,7 +298,7 @@ export class Message {
         if (!start_found || last_offset === 0) {
           throw new Error(`close-delimiter found at offset ${match.index} before any dash-boundary`);
         }
-        this.parts.push(new Message(this.body.slice(last_offset, match.index)));
+        this.parts.push(new Message(this.body.slice(last_offset, match.index), false));
       }
       last_offset = multi_re.lastIndex;
     }
@@ -289,6 +311,46 @@ export class Message {
     }
     if (!end_found) {
       throw new Error(`no close-delimiter (${boundary}) found`);
+    }
+  }
+
+  change_boundary() {
+    const ct = this.hdr_idx["content-type"];
+    if (!(ct && ct[0] && ct[0].parsed && ct[0].parsed.type === 'multipart'))
+      return;
+    for (const param of ct[0].parsed.parameters) {
+      if (param.boundary) {
+        param.boundary = hash(param.boundary);
+      }
+    }
+  }
+
+  writeSync(fd: number) {
+    for (const hdr of this.headers) {
+      if (hdr.parsed instanceof ContentType) {
+        fs.writeSync(fd, `Content-Type: ${hdr.parsed.type}/${hdr.parsed.subtype}`);
+        for (const param of hdr.parsed.parameters) {
+          for (const [k, v] of Object.entries(param)) {
+            fs.writeSync(fd, `;\r\n              ${k}=${v}`);
+          }
+        }
+      } else {
+        fs.writeSync(fd, `${hdr.name}: ${hdr.value}`);
+      }
+      fs.writeSync(fd, `\r\n`);
+    }
+    if (this.parts.length) {
+      const boundary = this.get_boundary_();
+      if (!boundary) {
+        throw new Error(`multiple parts without a boundary`);
+      }
+      for (const part of this.parts) {
+        fs.writeSync(fd, `\r\n--${boundary}\r\n`);
+        part.writeSync(fd);
+      }
+      fs.writeSync(fd, `--${boundary}--\r\n`);
+    } else if (this.body) {
+      fs.writeSync(fd, this.body);
     }
   }
 }
