@@ -12,6 +12,7 @@ const RE2 = require("re2-latin1");
 
 // Required to be present.
 const required = [
+  // "Date",                    // Often missing on legit messages.
   "From",                       // RFC-{8,28,53}22
 ];
 
@@ -23,6 +24,7 @@ const unique = [
   "Date",
   "From",
   "In-Reply-To",
+  "Message-Id",
   "References",
   "Reply-To",
   "Sender",
@@ -41,6 +43,9 @@ const correct = [
   "Date",
   "From",
   "In-Reply-To",
+  // "Message-Id",              // Often incorrect.
+  // "Received",                // Often incorrect.
+  // "References",              // Often incorrect.
   "Reply-To",
   "Sender",
   "To",
