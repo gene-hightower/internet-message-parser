@@ -216,6 +216,7 @@ export class Message {
     // Could check for Sender: if From: has more than one address.
   }
 
+  // <https://www.rfc-editor.org/rfc/rfc2046#section-5.1.1>
   find_parts_() {
     if (!this.body)             // no body, no parts
       return;
@@ -251,11 +252,14 @@ export class Message {
     var last_offset = 0;
 
     // prettier-ignore
-    const multi_re = new RE2('(?<start>--' + _.escapeRegExp(boundary) + '[ \t]*\r?\n)|' +
+    const multi_re = new RE2('^(?<start>--' + _.escapeRegExp(boundary) + '[ \t]*\r?\n)|' +
+                             '(?<enc>\r?\n--' + _.escapeRegExp(boundary) + '[ \t]*\r?\n)|' +
                              '(?<end>\r?\n--' + _.escapeRegExp(boundary) + '--[ \t]*)', 'gs');
     var match;
     while (match = multi_re.exec(this.body)) {
       if (match.groups.start) {
+        start_found = true;
+      } else if (match.groups.enc) {
         start_found = true;
         if (last_offset === 0) {
           if (match.index !== 0) {
