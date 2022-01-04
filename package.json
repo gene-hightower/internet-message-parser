@@ -30,6 +30,8 @@
   "license": "MIT",
   "homepage": "https://github.com/gene-hightower/message-parser#readme",
   "dependencies": {
+    "iconv": "^3.0.1",
+    "libqp": "^1.1.0",
     "moo": "^0.5.1",
     "nearley": "^2.20.1",
     "peggy": "^1.2.0",
