@@ -9,3 +9,11 @@ export class ContentType {
   ) {}
 
 }
+
+export type Encoding = "7bit" | "8bit" | "binary" | "quoted-printable" | "base64";
+
+export class ContentTransferEncoding {
+  constructor(
+    public mechanism: Encoding
+  ) {}
+}

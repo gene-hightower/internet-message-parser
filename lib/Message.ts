@@ -1,8 +1,10 @@
 const crypto = require("crypto");
 const fs = require('fs');
+const libqp = require('libqp');
+const Iconv  = require('iconv').Iconv;
 
 import { SyntaxError, parse, structuredHeaders } from './message-parser';
-import { ContentType } from './message-types';
+import { ContentTransferEncoding, ContentType, Parameter, Encoding } from './message-types';
 
 const _ = require('lodash');
 
@@ -31,6 +33,7 @@ const unique = [
   "Subject",
   "To",
   // RFC-2045
+  "Content-Transfer-Encoding",
   "Content-Type",
   "MIME-Version",
 ];
@@ -50,6 +53,7 @@ const correct = [
   "Sender",
   "To",
   // RFC-2045
+  "Content-Transfer-Encoding",
   "Content-Type",
   "MIME-Version",
 ];
@@ -109,6 +113,7 @@ export class Message {
   hdr_idx: FieldIdx;
 
   body: Buffer | null;
+  decoded: string | null
 
   // MIME multipart deconstruction
   preamble: Buffer | null;      // [preamble CRLF]
@@ -121,6 +126,7 @@ export class Message {
     this.hdr_idx = {};
 
     this.body = null;
+    this.decoded = null;
 
     this.preamble = null;
     this.parts = [];
@@ -235,26 +241,37 @@ export class Message {
     // Could check for Sender: if From: has more than one address.
   }
 
-  get_boundary_() {
-    const ct = this.hdr_idx["content-type"];
-    if (!(ct && ct[0] && ct[0].parsed && ct[0].parsed.type === 'multipart'))
-      return null;
-
-    var boundary = '';
-    for (const param of ct[0].parsed.parameters) {
-      if (param.boundary) {
-        if (boundary !== '') {
-          throw new Error(`Content-Type: with multiple boundary parameters`);
+  get_param_(name: string, parameters: Parameter[]) {
+    var value = '';
+    for (const param of parameters) {
+      if (param[name]) {
+        if (value !== '') {
+          throw new Error(`found multiple ${name} parameters`);
         }
-        boundary = param.boundary.trim();
+        value = param[name].trim();
       }
     }
-    if (boundary.startsWith('"')) {
-      boundary = canonicalize_string(unquote(boundary));
+    if (value.startsWith('"')) {
+      value = canonicalize_string(unquote(value));
     }
-    if (boundary === '') {
-      throw new Error(`Content-Type: multipart with no boundary`);
+    if (value === '') {
+      throw new Error(`parameter ${name} not found`);
     }
+    return value;
+  }
+
+  get_boundary_() {
+    const ct = this.hdr_idx["content-type"];
+    if (!ct || ct[0].parsed.type !== 'multipart') {
+      return null;
+    }
+
+    if (!this.is_identity_encoding_(this.get_encoding_())) {
+      throw new Error('only 7bit, 8bit, or binary Content-Transfer-Encoding allowed for multipart messages');
+    }
+
+    const boundary = this.get_param_('boundary', ct[0].parsed.parameters);
+
     if (!/^[ 0-9A-Za-z'\(\)+_,\-\./:=\?]+$/.test(boundary)) {
       throw new Error(`invalid character in multipart boundary (${boundary})`);
     }
@@ -319,13 +336,94 @@ export class Message {
     }
   }
 
+  get_encoding_() {
+    const ce = this.hdr_idx["content-transfer-encoding"];
+    return ce ? ce[0].parsed.mechanism : '7bit';
+  }
+
+  is_identity_encoding_(enc: Encoding): boolean {
+    switch (enc) {
+      case "7bit":
+      case "8bit":
+      case "binary":
+        return true;
+    }
+    return false;
+  }
+
+  decode() {
+    if (this.parts.length) {
+      for (const part of this.parts) {
+        part.decode();
+      }
+      return;
+    }
+
+    if (!this.body) {
+      return;
+    }
+
+    const ct = this.hdr_idx["content-type"]
+             ? this.hdr_idx["content-type"][0]
+             : parse('Content-type: text/plain; charset=us-ascii');
+
+    if (ct.parsed.type !== "text") {
+      return;
+    }
+
+    const charset = this.get_param_('charset', ct.parsed.parameters);
+
+    const iconv = new Iconv(charset, 'UTF-8');
+
+    // decode this.body
+    const enc = this.get_encoding_();
+    if (this.is_identity_encoding_(enc)) {
+      this.decoded = iconv.convert(this.body).toString();
+      return;
+    }
+
+    switch (enc) {
+      case "quoted-printable":
+        var s: string;
+        try {
+          s = iconv.convert(this.body);
+        } catch (e) {
+          // fall back to UTF-8
+          s = this.body.toString();
+        }
+        {
+          const dq = libqp.decode(s);
+          const dqb = dq as Buffer;
+          const cn = iconv.convert(dqb);
+          const cnb = cn as Buffer;
+          this.decoded = cnb.toString();
+        }
+        break;
+
+      case "base64":
+        {
+          const s = this.body.toString('base64');
+          const dq = libqp.decode(s);
+          const dqb = dq as Buffer;
+          const cn = iconv.convert(dqb);
+          const cnb = cn as Buffer;
+          this.decoded = cnb.toString();
+        }
+        break;
+
+      default:
+        throw new Error(`unknown Content-Transfer-Encoding ${enc}`);
+        break;
+    }
+  }
+
   change_boundary() {
     const ct = this.hdr_idx["content-type"];
     if (!(ct && ct[0] && ct[0].parsed && ct[0].parsed.type === 'multipart'))
       return;
     for (const param of ct[0].parsed.parameters) {
       if (param.boundary) {
-        param.boundary = hash(param.boundary);
+        param.boundary = `"${hash(param.boundary)}"`; // quoted as base64 can contain the tspecial "/"
       }
     }
   }
@@ -339,6 +437,8 @@ export class Message {
             fs.writeSync(fd, `;\r\n\t${k}=${v}`);
           }
         }
+      } else if (hdr.parsed instanceof ContentTransferEncoding) {
+        fs.writeSync(fd, `Content-Transfer-Encoding: ${hdr.parsed.mechanism}`);
       } else {
         fs.writeSync(fd, `${hdr.name}: ${hdr.value}`);
       }

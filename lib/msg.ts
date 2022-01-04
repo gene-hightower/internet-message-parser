@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 import { Message, is_structured_header } from "./Message";
+import { ContentTransferEncoding, ContentType, Parameter, Encoding } from './message-types';
 
 //const dir = '/home/gene/Maildir/.FB/cur';
 //const dir = '/home/gene/Maildir/.Junk/cur';
@@ -10,6 +11,54 @@ const dir = '/tmp/Maildir/cur';
 
 var count_messages = 0;
 var count_multipart = 0;
+
+function log_msg(msg: Message) {
+  const ct = msg.hdr_idx["content-type"];
+
+  if (msg.parts.length) {
+
+    // double check (belt and braces) type is multipart
+    if (!(ct && ct[0].parsed?.type === 'multipart')) {
+      throw new Error(`multiple parts found in message type ${ct[0].parsed?.type}`);
+    }
+
+    console.log(`----- Multipart -----`);
+    if (msg.preamble) {
+      console.log(`----- preamble`);
+    }
+    if (msg.parts) {
+      console.log(`${msg.parts.length} parts found`);
+
+      var partno = 1;
+      for (const part of msg.parts) {
+        console.log(`----- part ${partno}`);
+        for (const hdr of part.headers) {
+          console.log(`${hdr.name}: ${hdr.value}`);
+        }
+        console.log();
+
+        if (part.decoded) {
+          console.log(part.decoded);
+        } else {
+          // log_msg(part);
+        }
+
+        partno += 1;
+      }
+    }
+    if (msg.epilogue) {
+      console.log(`----- epilogue`);
+    }
+  } else if (msg.decoded) {
+    console.log(msg.decoded);
+  } else {
+    if (ct && ct[0] && ct[0].parsed) {
+      console.log(`----- ${ct[0].parsed?.type} -----`);
+    } else {
+      console.log(`----- part -----`);
+    }
+  }
+}
 
 var msg = new Message(Buffer.from(''), false);
 
@@ -76,28 +125,11 @@ for (const filename of fs.readdirSync(dir)) {
         const fd = fs.openSync(outpath, "w", 0o666);
         msg.writeSync(fd);
         fs.closeSync(fd);
-
-        /*
-        console.log(`----- Multipart file: ${filepath} -----`);
-        if (msg.preamble) {
-          console.log(`preamble found`);
-        }
-        if (msg.parts) {
-          console.log(`${msg.parts.length} parts found`);
-
-          for (const part of msg.parts) {
-            console.log(`-----`);
-            for (const hdr of part.headers) {
-              console.log(`${hdr.name}: ${hdr.value}`);
-            }
-          }
-        }
-        if (msg.epilogue) {
-          console.log(`epilogue found`);
-        }
-        */
-
       }
+
+      msg.decode();
+      console.log(`===== ${filepath} =====`);
+      log_msg(msg);
 
       count_messages += 1;
     }
