@@ -395,7 +395,7 @@ export class Message {
         break;
 
       case "base64":
-        this.decoded = iconv.convert(libqp.decode(this.body.toString('base64'))).toString();
+        this.decoded = iconv.convert(this.body.toString('base64')).toString();
         break;
 
       default:
