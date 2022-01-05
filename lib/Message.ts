@@ -391,24 +391,11 @@ export class Message {
           // fall back to UTF-8
           s = this.body.toString();
         }
-        {
-          const dq = libqp.decode(s);
-          const dqb = dq as Buffer;
-          const cn = iconv.convert(dqb);
-          const cnb = cn as Buffer;
-          this.decoded = cnb.toString();
-        }
+        this.decoded = iconv.convert(libqp.decode(s)).toString();
         break;
 
       case "base64":
-        {
-          const s = this.body.toString('base64');
-          const dq = libqp.decode(s);
-          const dqb = dq as Buffer;
-          const cn = iconv.convert(dqb);
-          const cnb = cn as Buffer;
-          this.decoded = cnb.toString();
-        }
+        this.decoded = iconv.convert(libqp.decode(this.body.toString('base64'))).toString();
         break;
 
       default:
