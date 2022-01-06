@@ -6,8 +6,6 @@ const Iconv  = require('iconv').Iconv;
 import { SyntaxError, parse, structuredHeaders } from './message-parser';
 import { ContentTransferEncoding, ContentType, Parameter, Encoding } from './message-types';
 
-const _ = require('lodash');
-
 // Version of node-re2 that uses latin1; searching by byte value, not
 // by Unicode code-points.
 const RE2 = require("re2-latin1");
@@ -58,6 +56,10 @@ const correct = [
   "MIME-Version",
 ];
 
+function escapeRegExp(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function unquote(quoted_string: string) {
   return quoted_string.substr(1).substr(0, quoted_string.length - 2);
 }
@@ -66,21 +68,21 @@ function quote(unquoted_string: string) {
   return `"${unquoted_string}"`;
 }
 
-function unescape(escaped: string) {
+function unescape_qp(escaped: string) {
   return escaped.replace(/(?:\\(.))/g, "$1");
 }
 
-function escape(unescaped: string) {
+function escape_qp(unescaped: string) {
   return unescaped.replace(/(?:(["\\]))/g, "\\$1");
 }
 
-function canonicalize_string(unquoted: string) {
-  return escape(unescape(unquoted));
+function canonicalize_quoted_string(unquoted: string) {
+  return escape_qp(unescape_qp(unquoted));
 }
 
 function enquote(s: string) {
   if (!/[^\x00-\x20\(\)\<\>@,;:\\"/\[\]\?=]+/.test(s)) {     // if it's not a valid token
-    return quote(escape(s));
+    return quote(escape_qp(s));
   }
 }
 
@@ -243,21 +245,24 @@ export class Message {
       throw new Error(`must have Sender: if more than one address in From:`);
   }
 
-  get_param_(name: string, parameters: Parameter[]) {
-    var value = '';
+  get_param_(name: string, parameters: Parameter[], def_val?: string) {
+    var value = undefined;
     for (const param of parameters) {
       if (param[name]) {
-        if (value !== '') {
+        if (value !== undefined) {
           throw new Error(`found multiple ${name} parameters`);
         }
         value = param[name].trim();
       }
     }
-    if (value.startsWith('"')) {
-      value = canonicalize_string(unquote(value));
+    if (value === undefined) {
+      if (def_val !== undefined)
+        value = def_val;
+      else
+        throw new Error(`parameter ${name} not found`);
     }
-    if (value === '') {
-      throw new Error(`parameter ${name} not found`);
+    if (value.startsWith('"')) {
+      value = canonicalize_quoted_string(unquote(value));
     }
     return value;
   }
@@ -295,14 +300,14 @@ export class Message {
     var last_offset = 0;
 
     // prettier-ignore
-    const multi_re = new RE2('^(?<start>--' + _.escapeRegExp(boundary) + '[ \t]*\r?\n)|' +
-                             '(?<enc>\r?\n--' + _.escapeRegExp(boundary) + '[ \t]*\r?\n)|' +
-                             '(?<end>\r?\n--' + _.escapeRegExp(boundary) + '--[ \t]*)', 'gs');
+    const multi_re = new RE2('^(?<start>--' + escapeRegExp(boundary) + '[ \t]*\r?\n)|' +
+                             '(?<encap>\r?\n--' + escapeRegExp(boundary) + '[ \t]*\r?\n)|' +
+                             '(?<end>\r?\n--' + escapeRegExp(boundary) + '--[ \t]*)', 'gs');
     var match;
     while (match = multi_re.exec(this.body)) {
       if (match.groups.start) {
         start_found = true;
-      } else if (match.groups.enc) {
+      } else if (match.groups.encap) {
         start_found = true;
         if (last_offset === 0) {
           if (match.index !== 0) {
@@ -337,7 +342,9 @@ export class Message {
 
   get_encoding_() {
     const ce = this.hdr_idx["content-transfer-encoding"];
-    return ce ? ce[0].parsed.mechanism : '7bit';
+    if (ce && ce[0].parsed && ce[0].parsed.mechanism)
+      return ce[0].parsed.mechanism;
+    return '7bit';              // maybe we should be assuming 8bit now?
   }
 
   is_identity_encoding_(enc: Encoding): boolean {
@@ -367,7 +374,7 @@ export class Message {
     if (ct && ct.parsed.type !== "text")
       return;
 
-    const charset = this.get_param_('charset', ct.parsed.parameters).toLowerCase();
+    const charset = this.get_param_('charset', ct.parsed.parameters, 'us-ascii').toLowerCase();
 
     const iconv = new Iconv(charset, 'utf-8');
 
@@ -382,10 +389,9 @@ export class Message {
       case "quoted-printable":
         var s: string;
         try {
-          s = iconv.convert(this.body);
+          s = this.body.toString('ascii');
         } catch (e) {
-          // fall back to UTF-8
-          s = this.body.toString();
+          throw new Error(`non-ascii text in quoted-printable part`);
         }
         this.decoded = iconv.convert(libqp.decode(s)).toString();
         break;
@@ -417,7 +423,7 @@ export class Message {
     if (ct && ct.parsed.type !== "text")
       return;
 
-    const charset = this.get_param_('charset', ct.parsed.parameters).toLowerCase();
+    const charset = this.get_param_('charset', ct.parsed.parameters, 'us-ascii').toLowerCase();
 
     const iconv = new Iconv('utf-8', charset);
 

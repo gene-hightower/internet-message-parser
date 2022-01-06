@@ -5,9 +5,9 @@ import { Message, is_structured_header } from "./Message";
 import { ContentTransferEncoding, ContentType, Parameter, Encoding } from './message-types';
 
 //const dir = '/home/gene/Maildir/.FB/cur';
-//const dir = '/home/gene/Maildir/.Junk/cur';
+const dir = '/home/gene/Maildir/.Junk/cur';
 //const dir = '/home/gene/Maildir/cur';
-const dir = '/tmp/Maildir/cur';
+//const dir = '/tmp/Maildir/cur';
 
 var count_messages = 0;
 var count_multipart = 0;
@@ -118,14 +118,16 @@ for (const filename of fs.readdirSync(dir)) {
       if (ct && ct[0].parsed?.type === 'multipart') {
         count_multipart += 1;
 
-        const outpath = path.resolve('/tmp', filename);
+        const outdir = '/tmp/cur';
+        fs.mkdirSync(outdir, { recursive: true });
+        const outpath = path.resolve(outdir, filename);
         const fd = fs.openSync(outpath, "w", 0o666);
         msg.writeSync(fd);
         fs.closeSync(fd);
       }
 
       console.log(`===== ${filepath} =====`);
-      log_msg(msg);
+      // log_msg(msg);
 
       count_messages += 1;
     }

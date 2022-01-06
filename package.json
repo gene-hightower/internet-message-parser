@@ -8,8 +8,7 @@
     "build": "tsc",
     "clean": "rm -rf node_modules lib/grammar.ts dist",
     "coverage": "jest --collectCoverage -- dist/test/*.test.js",
-    "grammar": "nearleyc lib/grammar.ne -o lib/grammar.ts",
-    "prepare": "npm run grammar && npm run build",
+    "prepare": "npm run build",
     "test": "jest dist/test/*.test.js"
   },
   "engines": {
@@ -32,11 +31,8 @@
   "dependencies": {
     "iconv": "^3.0.1",
     "libqp": "^1.1.0",
-    "moo": "^0.5.1",
-    "nearley": "^2.20.1",
     "peggy": "^1.2.0",
     "re2-latin1": "^1.17.4",
-    "ts-dedent": "^2.2.0",
     "ts-pegjs": "^1.2.1"
   },
   "devDependencies": {
