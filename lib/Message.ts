@@ -249,25 +249,21 @@ export class Message {
   }
 
   get_param_(name: string, parameters: Parameter[], def_val?: string) {
-    var value = undefined;
-    for (const param of parameters) {
-      if (param[name]) {
-        if (value !== undefined) {
-          throw new Error(`found multiple ${name} parameters`);
-        }
-        value = param[name].trim();
-      }
-    }
-    if (value === undefined) {
-      if (def_val !== undefined)
-        value = def_val;
-      else
-        throw new Error(`parameter ${name} not found`);
-    }
-    if (value.startsWith('"')) {
-      value = canonicalize_quoted_string(unquote(value));
-    }
-    return value;
+    const values = parameters.filter(p => !!(p[name])).map(v => v[name].trim());
+
+    if (values.length === 0 && def_val)
+      values.push(def_val)
+
+    const canon = values.map(v => v.startsWith('"') ? canonicalize_quoted_string(unquote(v)) : v);
+
+    const uniq = [...new Set(canon)]; // remove dups
+
+    if (uniq.length > 1)
+      throw new Error(`found multiple conflicting ${name} parameters`);
+    if (uniq.length === 0)
+      throw new Error(`parameter ${name} not found`);
+
+    return uniq[0];
   }
 
   get_boundary_() {
@@ -371,13 +367,13 @@ export class Message {
       return;
 
     const ct = this.hdr_idx["content-type"]
-      ? this.hdr_idx["content-type"][0]
+      ? this.hdr_idx["content-type"][0].parsed
       : parse('Content-Type: text/plain; charset="us-ascii"\r\n');
 
-    if (ct && ct.parsed.type !== "text")
+    if (ct.type !== "text")
       return;
 
-    const charset = this.get_param_('charset', ct.parsed.parameters, 'us-ascii').toLowerCase();
+    const charset = this.get_param_('charset', ct.parameters, 'us-ascii').toLowerCase();
 
     const iconv = new Iconv(charset, 'utf-8');
 
@@ -390,13 +386,17 @@ export class Message {
 
     switch (enc) {
       case "quoted-printable":
-        var s: string;
+        const s = this.body.toString('ascii');
+        const dec = libqp.decode(s);
         try {
-          s = this.body.toString('ascii');
+          this.decoded = iconv.convert(dec).toString();
         } catch (e) {
-          throw new Error(`non-ascii text in quoted-printable part`);
+          const ex = e as NodeJS.ErrnoException;
+          if (ex.code === 'EILSEQ') {
+            ex.message = `Illegal character sequence in decode for charset="${charset}"`
+          }
+          throw ex;
         }
-        this.decoded = iconv.convert(libqp.decode(s)).toString();
         break;
 
       case "base64":
@@ -420,13 +420,13 @@ export class Message {
       return;
 
     const ct = this.hdr_idx["content-type"]
-      ? this.hdr_idx["content-type"][0]
+      ? this.hdr_idx["content-type"][0].parsed
       : parse('Content-Type: text/plain; charset="us-ascii"\r\n');
 
-    if (ct && ct.parsed.type !== "text")
+    if (ct.type !== "text")
       return;
 
-    const charset = this.get_param_('charset', ct.parsed.parameters, 'us-ascii').toLowerCase();
+    const charset = this.get_param_('charset', ct.parameters, 'us-ascii').toLowerCase();
 
     const iconv = new Iconv('utf-8', charset);
 
@@ -438,7 +438,15 @@ export class Message {
 
     switch (enc) {
       case "quoted-printable":
-        this.body = Buffer.from(`${libqp.wrap(libqp.encode(iconv.convert(this.decoded)))}\r\n`);
+        try {
+          this.body = Buffer.from(`${libqp.wrap(libqp.encode(iconv.convert(this.decoded)))}\r\n`);
+        } catch (e) {
+          const ex = e as NodeJS.ErrnoException;
+          if (ex.code === 'EILSEQ') {
+            ex.message = `Illegal character sequence in encode() for charset="${charset}"`
+          }
+          throw ex;
+        }
         break;
 
       case "base64":
@@ -457,7 +465,7 @@ export class Message {
       return;
     for (const param of ct[0].parsed.parameters)
       if (param.boundary)
-        param.boundary = `"${hash(param.boundary)}"`; // quoted as base64 can contain the tspecial "/"
+        param.boundary = `"=_${hash(param.boundary)}_="`; // quoted as base64 can contain the tspecial "/"
   }
 
   writeSync(fd: number) {
