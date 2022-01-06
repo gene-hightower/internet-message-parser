@@ -35,13 +35,8 @@ function log_msg(msg: Message) {
         for (const hdr of part.headers) {
           console.log(`${hdr.name}: ${hdr.value}`);
         }
-        console.log();
 
-        if (part.decoded) {
-          console.log(part.decoded);
-        } else {
-          // log_msg(part);
-        }
+        log_msg(part);
 
         partno += 1;
       }
@@ -49,8 +44,8 @@ function log_msg(msg: Message) {
     if (msg.epilogue) {
       console.log(`----- epilogue`);
     }
-  } else if (msg.decoded) {
-    console.log(msg.decoded);
+  } else if (msg.body) {
+    console.log(msg.body.toString());
   } else {
     if (ct && ct[0] && ct[0].parsed) {
       console.log(`----- ${ct[0].parsed?.type} -----`);
@@ -115,11 +110,13 @@ for (const filename of fs.readdirSync(dir)) {
         }
       }
 
+      msg.decode();
+      msg.change_boundary();
+      msg.encode();
+
       const ct = msg.hdr_idx["content-type"];
       if (ct && ct[0].parsed?.type === 'multipart') {
         count_multipart += 1;
-
-        msg.change_boundary();
 
         const outpath = path.resolve('/tmp', filename);
         const fd = fs.openSync(outpath, "w", 0o666);
@@ -127,7 +124,6 @@ for (const filename of fs.readdirSync(dir)) {
         fs.closeSync(fd);
       }
 
-      msg.decode();
       console.log(`===== ${filepath} =====`);
       log_msg(msg);
 

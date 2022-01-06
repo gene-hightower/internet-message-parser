@@ -120,7 +120,10 @@ export class Message {
   parts: Message[];
   epilogue: Buffer | null;      // [CRLF epilogue]
 
-  constructor(data: Buffer, message: boolean) {
+  constructor(data: Buffer, full_message: boolean) {
+    if (!Buffer.isBuffer(data)) {
+      throw new TypeError(`Message ctor must take a Buffer, not ${typeof data}`);
+    }
     this.data = data;
     this.headers = [];
     this.hdr_idx = {};
@@ -135,13 +138,12 @@ export class Message {
     this.coarse_chop_();
     this.index_headers_();
     this.parse_structured_headers_();
-    this.sanity_check_headers_(message);
+    if (full_message)           // if we're just a MIME part, skip header checks
+      this.sanity_check_headers_();
     this.find_parts_();
   }
 
   coarse_chop_() {
-    var next_match = 0;         // offset where we expect to find the next match
-
     // This regex is based on RFC-822 “simple field parsing”
     // specifically section “B.1. SYNTAX” but extended to accept byte
     // values in the range 128 to 255 to support UTF-8 encoding in the
@@ -161,16 +163,15 @@ export class Message {
                                ')|' +
                                '(?<body>\\r?\\n[\\x00-\\xFF]*$)|' +
                                '(?<other>[^\\r\\n]+)', 'gs');
+    var next_match = 0; // offset where we expect to find the next match
     var match;
     while (match = message_re.exec(this.data)) {
-      const match_length = match[0].length;
-
       /* Check to see we haven't skipped over any bytes that did not
-       * match either a header or a body.
+       * match either a header, or a body, or other.
        */
-      if (message_re.lastIndex !== next_match + match_length) {
-        const unm_len = message_re.lastIndex - (next_match + match_length);
-        throw new Error(`Unmatched at ${next_match}: "${data.slice(next_match, next_match + unm_len)}"`);
+      if (message_re.lastIndex !== next_match + match[0].length) {
+        const unm_len = message_re.lastIndex - (next_match + match[0].length);
+        throw new Error(`unmatched at ${next_match}: "${data.slice(next_match, next_match + unm_len)}"`);
       }
 
       if (match.groups.header) {
@@ -186,11 +187,11 @@ export class Message {
         next_match += match.groups.body.length;
       } else if (match.groups.other) {
         throw new Error(`unknown string at ${next_match}: "${match.groups.other}"`);
-        // Or maybe we might choose to ignore junk up to the next newline?
+        // The alternative might be to ignore junk up to the next newline.
         // next_match += match.groups.body.length;
-        // ...
       } else {
-        const unm_len = message_re.lastIndex - (next_match + match_length);
+        // We should never get a match without matching one of the groups: header, body, or other.
+        const unm_len = message_re.lastIndex - (next_match + match[0].length);
         throw new Error(`unknown match at ${next_match}: "${data.slice(next_match, next_match + unm_len)}"`);
       }
     }
@@ -216,29 +217,30 @@ export class Message {
     }
   }
 
-  sanity_check_headers_(message: boolean) {
-    if (!message)
-      return;
+  sanity_check_headers_() {
     for (const fld of required) {
       const key = fld.toLowerCase();
-      if (!this.hdr_idx[key]) {
+      if (!this.hdr_idx[key])
         throw new Error(`missing ${fld}: header`);
-      }
     }
     for (const fld of unique) {
       const key = fld.toLowerCase();
-      if (this.hdr_idx[key]?.length > 1) {
+      if (this.hdr_idx[key]?.length > 1)
         throw new Error(`too many ${fld}: headers`);
-      }
     }
     for (const fld of correct) {
       const p = this.hdr_idx[fld.toLowerCase()];
-      if (p && !p.every(f => f.parsed)) {
+      if (p && !p.every(f => f.parsed))
         throw new Error(`syntax error in ${fld}: header`);
-      }
     }
-    // Could check for at least one of To:, Cc:, or Bcc.
-    // Could check for Sender: if From: has more than one address.
+
+    // Check for at least one of To:, Cc:, or Bcc.
+    if (!(this.hdr_idx['to'] || this.hdr_idx['cc'] || this.hdr_idx['bcc']))
+      throw new Error(`must have a recipient, one of To:, Cc:, or Bcc:`);
+
+    // Check for Sender: if From: has more than one address.
+    if (this.hdr_idx['from'][0].parsed[1].length && !this.hdr_idx['sender'])
+      throw new Error(`must have Sender: if more than one address in From:`);
   }
 
   get_param_(name: string, parameters: Parameter[]) {
@@ -262,22 +264,19 @@ export class Message {
 
   get_boundary_() {
     const ct = this.hdr_idx["content-type"];
-    if (!ct || ct[0].parsed.type !== 'multipart') {
+    if (!(ct && ct[0] && ct[0].parsed && ct[0].parsed.type === 'multipart'))
       return null;
-    }
 
-    if (!this.is_identity_encoding_(this.get_encoding_())) {
+    if (!this.is_identity_encoding_(this.get_encoding_()))
       throw new Error('only 7bit, 8bit, or binary Content-Transfer-Encoding allowed for multipart messages');
-    }
 
     const boundary = this.get_param_('boundary', ct[0].parsed.parameters);
 
-    if (!/^[ 0-9A-Za-z'\(\)+_,\-\./:=\?]+$/.test(boundary)) {
+    if (!/^[ 0-9A-Za-z'\(\)+_,\-\./:=\?]+$/.test(boundary))
       throw new Error(`invalid character in multipart boundary (${boundary})`);
-    }
-    if (boundary[boundary.length - 1] == ' ') {
+
+    if (boundary[boundary.length - 1] == ' ')
       throw new Error(`multipart boundary must not end with a space`);
-    }
 
     return boundary;
   }
@@ -353,27 +352,24 @@ export class Message {
 
   decode() {
     if (this.parts.length) {
-      for (const part of this.parts) {
+      for (const part of this.parts)
         part.decode();
-      }
       return;
     }
 
-    if (!this.body) {
+    if (!this.body)
       return;
-    }
 
     const ct = this.hdr_idx["content-type"]
-             ? this.hdr_idx["content-type"][0]
-             : parse('Content-type: text/plain; charset=us-ascii');
+      ? this.hdr_idx["content-type"][0]
+      : parse('Content-Type: text/plain; charset=us-ascii');
 
-    if (ct.parsed.type !== "text") {
+    if (ct && ct.parsed.type !== "text")
       return;
-    }
 
-    const charset = this.get_param_('charset', ct.parsed.parameters);
+    const charset = this.get_param_('charset', ct.parsed.parameters).toLowerCase();
 
-    const iconv = new Iconv(charset, 'UTF-8');
+    const iconv = new Iconv(charset, 'utf-8');
 
     // decode this.body
     const enc = this.get_encoding_();
@@ -404,15 +400,55 @@ export class Message {
     }
   }
 
+  encode() {
+    if (this.parts.length) {
+      for (const part of this.parts)
+        part.encode();
+      return;
+    }
+
+    if (!this.decoded)
+      return;
+
+    const ct = this.hdr_idx["content-type"]
+      ? this.hdr_idx["content-type"][0]
+      : parse('Content-Type: text/plain; us-ascii');
+
+    if (ct && ct.parsed.type !== "text")
+      return;
+
+    const charset = this.get_param_('charset', ct.parsed.parameters).toLowerCase();
+
+    const iconv = new Iconv('utf-8', charset);
+
+    const enc = this.get_encoding_();
+    if (this.is_identity_encoding_(enc)) {
+      this.body = iconv.convert(this.decoded);
+      return;
+    }
+
+    switch (enc) {
+      case "quoted-printable":
+        this.body = Buffer.from(`${libqp.wrap(libqp.encode(iconv.convert(this.decoded)))}\r\n`);
+        break;
+
+      case "base64":
+        this.body = Buffer.from(iconv.convert(this.decoded).toString('base64').replace(/(.{1,76})/g, "$1\r\n"));
+        break;
+
+      default:
+        throw new Error(`unknown Content-Transfer-Encoding ${enc}`);
+        break;
+    }
+  }
+
   change_boundary() {
     const ct = this.hdr_idx["content-type"];
     if (!(ct && ct[0] && ct[0].parsed && ct[0].parsed.type === 'multipart'))
       return;
-    for (const param of ct[0].parsed.parameters) {
-      if (param.boundary) {
+    for (const param of ct[0].parsed.parameters)
+      if (param.boundary)
         param.boundary = `"${hash(param.boundary)}"`; // quoted as base64 can contain the tspecial "/"
-      }
-    }
   }
 
   writeSync(fd: number) {
