@@ -10,7 +10,7 @@ import { ContentTransferEncoding, ContentType, Parameter, Encoding } from './mes
 // by Unicode code-points.
 const RE2 = require("re2-latin1");
 
-// Required to be present.
+// Required to be present in full messages, but not MIME parts.
 const required = [
   // "Date",                    // Often missing on legit messages.
   "From",                       // RFC-{8,28,53}22
@@ -140,8 +140,7 @@ export class Message {
     this.coarse_chop_();
     this.index_headers_();
     this.parse_structured_headers_();
-    if (full_message)           // if we're just a MIME part, skip header checks
-      this.sanity_check_headers_();
+    this.sanity_check_headers_(full_message);
     this.find_parts_();
   }
 
@@ -219,11 +218,14 @@ export class Message {
     }
   }
 
-  sanity_check_headers_() {
-    for (const fld of required) {
-      const key = fld.toLowerCase();
-      if (!this.hdr_idx[key])
-        throw new Error(`missing ${fld}: header`);
+  sanity_check_headers_(full_message: boolean) {
+    if (full_message) {
+      // Required fields for full messages only.
+      for (const fld of required) {
+        const key = fld.toLowerCase();
+        if (!this.hdr_idx[key])
+          throw new Error(`missing ${fld}: header`);
+      }
     }
     for (const fld of unique) {
       const key = fld.toLowerCase();
@@ -235,14 +237,15 @@ export class Message {
       if (p && !p.every(f => f.parsed))
         throw new Error(`syntax error in ${fld}: header`);
     }
+    if (full_message) {
+      // Check for at least one of To:, Cc:, or Bcc.
+      if (!(this.hdr_idx['to'] || this.hdr_idx['cc'] || this.hdr_idx['bcc']))
+        throw new Error(`must have a recipient, one of To:, Cc:, or Bcc:`);
 
-    // Check for at least one of To:, Cc:, or Bcc.
-    if (!(this.hdr_idx['to'] || this.hdr_idx['cc'] || this.hdr_idx['bcc']))
-      throw new Error(`must have a recipient, one of To:, Cc:, or Bcc:`);
-
-    // Check for Sender: if From: has more than one address.
-    if (this.hdr_idx['from'][0].parsed[1].length && !this.hdr_idx['sender'])
-      throw new Error(`must have Sender: if more than one address in From:`);
+      // Check for Sender: if From: has more than one address.
+      if (this.hdr_idx['from'][0].parsed[1].length && !this.hdr_idx['sender'])
+        throw new Error(`must have Sender: if more than one address in From:`);
+    }
   }
 
   get_param_(name: string, parameters: Parameter[], def_val?: string) {
@@ -269,7 +272,7 @@ export class Message {
 
   get_boundary_() {
     const ct = this.hdr_idx["content-type"];
-    if (!(ct && ct[0] && ct[0].parsed && ct[0].parsed.type === 'multipart'))
+    if (!(ct && ct[0] && ct[0].parsed.type === 'multipart'))
       return null;
 
     if (!this.is_identity_encoding_(this.get_encoding_()))
@@ -369,7 +372,7 @@ export class Message {
 
     const ct = this.hdr_idx["content-type"]
       ? this.hdr_idx["content-type"][0]
-      : parse('Content-Type: text/plain; charset=us-ascii');
+      : parse('Content-Type: text/plain; charset="us-ascii"\r\n');
 
     if (ct && ct.parsed.type !== "text")
       return;
@@ -418,7 +421,7 @@ export class Message {
 
     const ct = this.hdr_idx["content-type"]
       ? this.hdr_idx["content-type"][0]
-      : parse('Content-Type: text/plain; us-ascii');
+      : parse('Content-Type: text/plain; charset="us-ascii"\r\n');
 
     if (ct && ct.parsed.type !== "text")
       return;
@@ -450,7 +453,7 @@ export class Message {
 
   change_boundary() {
     const ct = this.hdr_idx["content-type"];
-    if (!(ct && ct[0] && ct[0].parsed && ct[0].parsed.type === 'multipart'))
+    if (!(ct && ct[0] && ct[0].parsed.type === 'multipart'))
       return;
     for (const param of ct[0].parsed.parameters)
       if (param.boundary)
