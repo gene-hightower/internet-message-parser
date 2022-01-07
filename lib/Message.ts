@@ -33,7 +33,7 @@ const unique = [
   // RFC-2045
   "Content-Transfer-Encoding",
   "Content-Type",
-  "MIME-Version",
+  // "MIME-Version",            // As long as they are correct.
 ];
 
 // If present, required to be syntactically correct.
@@ -343,7 +343,7 @@ export class Message {
     const ce = this.hdr_idx["content-transfer-encoding"];
     if (ce && ce[0].parsed && ce[0].parsed.mechanism)
       return ce[0].parsed.mechanism;
-    return '7bit';              // maybe we should be assuming 8bit now?
+    return '8bit';              // <- the RFC suggests 7bit as default
   }
 
   is_identity_encoding_(enc: Encoding): boolean {
@@ -368,19 +368,27 @@ export class Message {
 
     const ct = this.hdr_idx["content-type"]
       ? this.hdr_idx["content-type"][0].parsed
-      : parse('Content-Type: text/plain; charset="us-ascii"\r\n');
+      : parse('Content-Type: text/plain; charset="utf-8"\r\n');
 
     if (ct.type !== "text")
       return;
 
-    const charset = this.get_param_('charset', ct.parameters, 'us-ascii').toLowerCase();
+    const charset = this.get_param_('charset', ct.parameters, 'utf-8').toLowerCase();
 
     const iconv = new Iconv(charset, 'utf-8');
 
     // decode this.body
     const enc = this.get_encoding_();
     if (this.is_identity_encoding_(enc)) {
-      this.decoded = iconv.convert(this.body).toString();
+      try {
+        this.decoded = iconv.convert(this.body).toString();
+      } catch (e) {
+        const ex = e as NodeJS.ErrnoException;
+        if (ex.code === 'EILSEQ') {
+          ex.message = `Illegal character sequence decoding ${enc}, charset="${charset}"`
+        }
+        throw ex;
+      }
       return;
     }
 
@@ -393,7 +401,7 @@ export class Message {
         } catch (e) {
           const ex = e as NodeJS.ErrnoException;
           if (ex.code === 'EILSEQ') {
-            ex.message = `Illegal character sequence in decode for charset="${charset}"`
+            ex.message = `Illegal character sequence decoding ${enc}, charset="${charset}"`
           }
           throw ex;
         }
@@ -421,12 +429,12 @@ export class Message {
 
     const ct = this.hdr_idx["content-type"]
       ? this.hdr_idx["content-type"][0].parsed
-      : parse('Content-Type: text/plain; charset="us-ascii"\r\n');
+      : parse('Content-Type: text/plain; charset="utf-8"\r\n');
 
     if (ct.type !== "text")
       return;
 
-    const charset = this.get_param_('charset', ct.parameters, 'us-ascii').toLowerCase();
+    const charset = this.get_param_('charset', ct.parameters, 'utf-8').toLowerCase();
 
     const iconv = new Iconv('utf-8', charset);
 
