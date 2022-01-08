@@ -5,6 +5,7 @@
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
   "scripts": {
+    "parser": "node bin/peggy.js -o lib/parser.js --format commonjs src/parser.pegjs",
     "build": "tsc",
     "clean": "rm -rf node_modules lib/grammar.ts dist",
     "coverage": "jest --collectCoverage -- dist/test/*.test.js",
@@ -31,13 +32,13 @@
   "dependencies": {
     "iconv": "^3.0.1",
     "libqp": "^1.1.0",
-    "peggy": "^1.2.0",
     "re2-latin1": "^1.17.4",
     "ts-pegjs": "^1.2.1"
   },
   "devDependencies": {
     "@types/jest": "^26.0.20",
     "@types/node": "^14.14.33",
+    "peggy": "^1.2.0",
     "eslint": "*",
     "jest": "^26.6.3",
     "prettier": "2.5.1",
