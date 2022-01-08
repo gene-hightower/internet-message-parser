@@ -1,12 +1,12 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 import { Message, is_structured_header } from "./Message";
-import { ContentTransferEncoding, ContentType, Parameter, Encoding } from './message-types';
+import { ContentTransferEncoding, ContentType, Parameter, Encoding } from "./message-types";
 
 //const dir = '/home/gene/Maildir/.FB/cur';
-const dir = '/home/gene/Maildir/.Junk/cur';
-//const dir = '/home/gene/Maildir/cur';
+//const dir = '/home/gene/Maildir/.Junk/cur';
+const dir = "/home/gene/Maildir/cur";
 //const dir = '/tmp/Maildir/cur';
 
 var count_messages = 0;
@@ -16,9 +16,8 @@ function log_msg(msg: Message) {
   const ct = msg.hdr_idx["content-type"];
 
   if (msg.parts.length) {
-
     // double check (belt and braces) type is multipart
-    if (!(ct && ct[0].parsed?.type === 'multipart')) {
+    if (!(ct && ct[0].parsed?.type === "multipart")) {
       throw new Error(`multiple parts found in message type ${ct[0].parsed?.type}`);
     }
 
@@ -55,10 +54,9 @@ function log_msg(msg: Message) {
   }
 }
 
-var msg = new Message(Buffer.from(''), false);
+var msg = new Message(Buffer.from(""), false);
 
 for (const filename of fs.readdirSync(dir)) {
-
   const filepath = path.resolve(dir, filename);
 
   const stat = fs.statSync(filepath);
@@ -82,7 +80,8 @@ for (const filename of fs.readdirSync(dir)) {
       }
 
       // Structured headers to ignore, often malformed.
-        const ignore = [
+      const ignore = [
+        // prettier-ignore
         "authentication-results",
         "message-id",
         "received",
@@ -91,6 +90,7 @@ for (const filename of fs.readdirSync(dir)) {
       ];
       // Ignore if empty, as is often the case.
       const ignore_if_empty = [
+        // prettier-ignore
         "cc",
         "in-reply-to",
         "reply-to",
@@ -98,12 +98,9 @@ for (const filename of fs.readdirSync(dir)) {
 
       for (const hdr of msg.headers) {
         const hdr_name = hdr.name.toLowerCase();
-        if (!is_structured_header(hdr_name))
-          continue;
-        if (ignore.includes(hdr_name))
-          continue;
-        if (ignore_if_empty.includes(hdr_name) && !/[^ \t\r\n]/.test(hdr.value))
-          continue;
+        if (!is_structured_header(hdr_name)) continue;
+        if (ignore.includes(hdr_name)) continue;
+        if (ignore_if_empty.includes(hdr_name) && !/[^ \t\r\n]/.test(hdr.value)) continue;
         if (!hdr.parsed) {
           console.error(`###### file: ${filepath}`);
           console.error(`###### parse failed for: ${hdr.name}`);
@@ -115,10 +112,10 @@ for (const filename of fs.readdirSync(dir)) {
       msg.encode();
 
       const ct = msg.hdr_idx["content-type"];
-      if (ct && ct[0].parsed?.type === 'multipart') {
+      if (ct && ct[0].parsed?.type === "multipart") {
         count_multipart += 1;
 
-        const outdir = '/tmp/cur';
+        const outdir = "/tmp/cur";
         fs.mkdirSync(outdir, { recursive: true });
         const outpath = path.resolve(outdir, filename);
         const fd = fs.openSync(outpath, "w", 0o666);
@@ -126,7 +123,7 @@ for (const filename of fs.readdirSync(dir)) {
         fs.closeSync(fd);
       }
 
-      console.log(`===== ${filepath} =====`);
+      // console.log(`===== ${filepath} =====`);
       // log_msg(msg);
 
       count_messages += 1;

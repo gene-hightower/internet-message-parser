@@ -1,10 +1,10 @@
 const crypto = require("crypto");
-const fs = require('fs');
-const libqp = require('libqp');
-const Iconv  = require('iconv').Iconv;
+const fs = require("fs");
+const libqp = require("libqp");
+const Iconv = require("iconv").Iconv;
 
-import { SyntaxError, parse, structuredHeaders } from './message-parser';
-import { ContentTransferEncoding, ContentType, Parameter, Encoding } from './message-types';
+import { SyntaxError, parse, structuredHeaders } from "./message-parser";
+import { ContentTransferEncoding, ContentType, Parameter, Encoding } from "./message-types";
 
 // Version of node-re2 that uses latin1; searching by byte value, not
 // by Unicode code-points.
@@ -13,7 +13,7 @@ const RE2 = require("re2-latin1");
 // Required to be present in full messages, but not MIME parts.
 const required = [
   // "Date",                    // Often missing on legit messages.
-  "From",                       // RFC-{8,28,53}22
+  "From", // RFC-{8,28,53}22
 ];
 
 // Required to be unique.
@@ -57,7 +57,7 @@ const correct = [
 ];
 
 function escapeRegExp(s: string) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function unquote(quoted_string: string) {
@@ -81,20 +81,23 @@ function canonicalize_quoted_string(unquoted: string) {
 }
 
 function enquote(s: string) {
-  if (!/[^\x00-\x20\(\)\<\>@,;:\\"/\[\]\?=]+/.test(s)) {     // if it's not a valid token
+  if (!/[^\x00-\x20\(\)\<\>@,;:\\"/\[\]\?=]+/.test(s)) {
+    // if it's not a valid token
     return quote(escape_qp(s));
   }
 }
 
 function hash(s: string): string {
+  // prettier-ignore
   return crypto
     .createHash("sha256")
-    .update('6.283185307179586')
+    .update("6.283185307179586")
     .update(s)
-    .digest('base64').substr(0, 22);
+    .digest("base64")
+    .substr(0, 22);
 }
 
-export function is_structured_header(name: string)  {
+export function is_structured_header(name: string) {
   return structuredHeaders.includes(name.toLowerCase());
 }
 
@@ -105,8 +108,8 @@ export interface Field {
   parsed: any | null;
 }
 
-export interface FieldIdx  {
-  [name: string]: Field[]
+export interface FieldIdx {
+  [name: string]: Field[];
 }
 
 export class Message {
@@ -115,12 +118,12 @@ export class Message {
   hdr_idx: FieldIdx;
 
   body: Buffer | null;
-  decoded: string | null
+  decoded: string | null;
 
   // MIME multipart deconstruction
-  preamble: Buffer | null;      // [preamble CRLF]
+  preamble: Buffer | null; // [preamble CRLF]
   parts: Message[];
-  epilogue: Buffer | null;      // [CRLF epilogue]
+  epilogue: Buffer | null; // [CRLF epilogue]
 
   constructor(data: Buffer, full_message: boolean) {
     if (!Buffer.isBuffer(data)) {
@@ -166,7 +169,7 @@ export class Message {
                                '(?<other>[^\\r\\n]+)', 'gs');
     var next_match = 0; // offset where we expect to find the next match
     var match;
-    while (match = message_re.exec(this.data)) {
+    while ((match = message_re.exec(this.data))) {
       /* Check to see we haven't skipped over any bytes that did not
        * match either a header, or a body, or other.
        */
@@ -211,8 +214,8 @@ export class Message {
         try {
           hdr.parsed = parse(hdr.full_header);
         } catch (ex) {
-          hdr.parsed = null;    // Not all structured headers are
-                                // required, so let's not throw.
+          hdr.parsed = null; // Not all structured headers are
+          // required, so let's not throw.
         }
       }
     }
@@ -223,53 +226,46 @@ export class Message {
       // Required fields for full messages only.
       for (const fld of required) {
         const key = fld.toLowerCase();
-        if (!this.hdr_idx[key])
-          throw new Error(`missing ${fld}: header`);
+        if (!this.hdr_idx[key]) throw new Error(`missing ${fld}: header`);
       }
     }
     for (const fld of unique) {
       const key = fld.toLowerCase();
-      if (this.hdr_idx[key]?.length > 1)
-        throw new Error(`too many ${fld}: headers`);
+      if (this.hdr_idx[key]?.length > 1) throw new Error(`too many ${fld}: headers`);
     }
     for (const fld of correct) {
       const p = this.hdr_idx[fld.toLowerCase()];
-      if (p && !p.every(f => f.parsed))
-        throw new Error(`syntax error in ${fld}: header`);
+      if (p && !p.every((f) => f.parsed)) throw new Error(`syntax error in ${fld}: header`);
     }
     if (full_message) {
       // Check for at least one of To:, Cc:, or Bcc.
-      if (!(this.hdr_idx['to'] || this.hdr_idx['cc'] || this.hdr_idx['bcc']))
+      if (!(this.hdr_idx["to"] || this.hdr_idx["cc"] || this.hdr_idx["bcc"]))
         throw new Error(`must have a recipient, one of To:, Cc:, or Bcc:`);
 
       // Check for Sender: if From: has more than one address.
-      if (this.hdr_idx['from'][0].parsed[1].length && !this.hdr_idx['sender'])
+      if (this.hdr_idx["from"][0].parsed[1].length && !this.hdr_idx["sender"])
         throw new Error(`must have Sender: if more than one address in From:`);
     }
   }
 
   get_param_(name: string, parameters: Parameter[], def_val?: string) {
-    const values = parameters.filter(p => !!(p[name])).map(v => v[name].trim());
+    const values = parameters.filter((p) => !!p[name]).map((v) => v[name].trim());
 
-    if (values.length === 0 && def_val)
-      values.push(def_val)
+    if (values.length === 0 && def_val) values.push(def_val);
 
-    const canon = values.map(v => v.startsWith('"') ? canonicalize_quoted_string(unquote(v)) : v);
+    const canon = values.map((v) => (v.startsWith('"') ? canonicalize_quoted_string(unquote(v)) : v));
 
     const uniq = [...new Set(canon)]; // remove dups
 
-    if (uniq.length > 1)
-      throw new Error(`found multiple conflicting ${name} parameters`);
-    if (uniq.length === 0)
-      throw new Error(`parameter ${name} not found`);
+    if (uniq.length > 1) throw new Error(`found multiple conflicting ${name} parameters`);
+    if (uniq.length === 0) throw new Error(`parameter ${name} not found`);
 
     return uniq[0];
   }
 
   get_boundary_() {
     const ct = this.hdr_idx["content-type"];
-    if (!(ct && ct[0] && ct[0].parsed.type === 'multipart'))
-      return null;
+    if (!(ct && ct[0] && ct[0].parsed.type === "multipart")) return null;
 
     /*
       In my mailbox I find:
@@ -286,25 +282,24 @@ export class Message {
       throw new Error('only 7bit, 8bit, or binary Content-Transfer-Encoding allowed for multipart messages');
     */
 
-    const boundary = this.get_param_('boundary', ct[0].parsed.parameters);
+    const boundary = this.get_param_("boundary", ct[0].parsed.parameters);
 
     if (!/^[ 0-9A-Za-z'\(\)+_,\-\./:=\?]+$/.test(boundary))
       throw new Error(`invalid character in multipart boundary (${boundary})`);
 
-    if (boundary[boundary.length - 1] == ' ')
-      throw new Error(`multipart boundary must not end with a space`);
+    if (boundary[boundary.length - 1] == " ") throw new Error(`multipart boundary must not end with a space`);
 
     return boundary;
   }
 
   // <https://www.rfc-editor.org/rfc/rfc2046#section-5.1.1>
   find_parts_() {
-    if (!this.body)             // no body, no parts
+    if (!this.body)
+      // no body, no parts
       return;
 
     const boundary = this.get_boundary_();
-    if (!boundary)
-      return;
+    if (!boundary) return;
 
     var start_found = false;
     var end_found = false;
@@ -315,7 +310,7 @@ export class Message {
                              '(?<encap>\r?\n--' + escapeRegExp(boundary) + '[ \t]*\r?\n)|' +
                              '(?<end>\r?\n--' + escapeRegExp(boundary) + '--[ \t]*)', 'gs');
     var match;
-    while (match = multi_re.exec(this.body)) {
+    while ((match = multi_re.exec(this.body))) {
       if (match.groups.start) {
         start_found = true;
       } else if (match.groups.encap) {
@@ -353,9 +348,8 @@ export class Message {
 
   get_encoding_() {
     const ce = this.hdr_idx["content-transfer-encoding"];
-    if (ce && ce[0].parsed && ce[0].parsed.mechanism)
-      return ce[0].parsed.mechanism;
-    return '8bit';              // <- the RFC suggests 7bit as default
+    if (ce && ce[0].parsed && ce[0].parsed.mechanism) return ce[0].parsed.mechanism;
+    return "8bit"; // <- the RFC suggests 7bit as default
   }
 
   is_identity_encoding_(enc: Encoding): boolean {
@@ -370,24 +364,21 @@ export class Message {
 
   decode() {
     if (this.parts.length) {
-      for (const part of this.parts)
-        part.decode();
+      for (const part of this.parts) part.decode();
       return;
     }
 
-    if (!this.body)
-      return;
+    if (!this.body) return;
 
     const ct = this.hdr_idx["content-type"]
       ? this.hdr_idx["content-type"][0].parsed
       : parse('Content-Type: text/plain; charset="utf-8"\r\n');
 
-    if (ct.type !== "text")
-      return;
+    if (ct.type !== "text") return;
 
-    const charset = this.get_param_('charset', ct.parameters, 'utf-8').toLowerCase();
+    const charset = this.get_param_("charset", ct.parameters, "utf-8").toLowerCase();
 
-    const iconv = new Iconv(charset, 'utf-8');
+    const iconv = new Iconv(charset, "utf-8");
 
     // decode this.body
     const enc = this.get_encoding_();
@@ -396,8 +387,8 @@ export class Message {
         this.decoded = iconv.convert(this.body).toString();
       } catch (e) {
         const ex = e as NodeJS.ErrnoException;
-        if (ex.code === 'EILSEQ') {
-          ex.message = `Illegal character sequence decoding ${enc}, charset="${charset}"`
+        if (ex.code === "EILSEQ") {
+          ex.message = `Illegal character sequence decoding ${enc}, charset="${charset}"`;
         }
         throw ex;
       }
@@ -406,21 +397,21 @@ export class Message {
 
     switch (enc) {
       case "quoted-printable":
-        const s = this.body.toString('ascii');
+        const s = this.body.toString("ascii");
         const dec = libqp.decode(s);
         try {
           this.decoded = iconv.convert(dec).toString();
         } catch (e) {
           const ex = e as NodeJS.ErrnoException;
-          if (ex.code === 'EILSEQ') {
-            ex.message = `Illegal character sequence decoding ${enc}, charset="${charset}"`
+          if (ex.code === "EILSEQ") {
+            ex.message = `Illegal character sequence decoding ${enc}, charset="${charset}"`;
           }
           throw ex;
         }
         break;
 
       case "base64":
-        this.decoded = iconv.convert(this.body.toString('base64')).toString();
+        this.decoded = iconv.convert(this.body.toString("base64")).toString();
         break;
 
       default:
@@ -431,24 +422,21 @@ export class Message {
 
   encode() {
     if (this.parts.length) {
-      for (const part of this.parts)
-        part.encode();
+      for (const part of this.parts) part.encode();
       return;
     }
 
-    if (!this.decoded)
-      return;
+    if (!this.decoded) return;
 
     const ct = this.hdr_idx["content-type"]
       ? this.hdr_idx["content-type"][0].parsed
       : parse('Content-Type: text/plain; charset="utf-8"\r\n');
 
-    if (ct.type !== "text")
-      return;
+    if (ct.type !== "text") return;
 
-    const charset = this.get_param_('charset', ct.parameters, 'utf-8').toLowerCase();
+    const charset = this.get_param_("charset", ct.parameters, "utf-8").toLowerCase();
 
-    const iconv = new Iconv('utf-8', charset);
+    const iconv = new Iconv("utf-8", charset);
 
     const enc = this.get_encoding_();
     if (this.is_identity_encoding_(enc)) {
@@ -462,15 +450,20 @@ export class Message {
           this.body = Buffer.from(`${libqp.wrap(libqp.encode(iconv.convert(this.decoded)))}\r\n`);
         } catch (e) {
           const ex = e as NodeJS.ErrnoException;
-          if (ex.code === 'EILSEQ') {
-            ex.message = `Illegal character sequence in encode() for charset="${charset}"`
+          if (ex.code === "EILSEQ") {
+            ex.message = `Illegal character sequence in encode() for charset="${charset}"`;
           }
           throw ex;
         }
         break;
 
       case "base64":
-        this.body = Buffer.from(iconv.convert(this.decoded).toString('base64').replace(/(.{1,76})/g, "$1\r\n"));
+        this.body = Buffer.from(
+          iconv
+            .convert(this.decoded)
+            .toString("base64")
+            .replace(/(.{1,76})/g, "$1\r\n")
+        );
         break;
 
       default:
@@ -481,11 +474,8 @@ export class Message {
 
   change_boundary() {
     const ct = this.hdr_idx["content-type"];
-    if (!(ct && ct[0] && ct[0].parsed.type === 'multipart'))
-      return;
-    for (const param of ct[0].parsed.parameters)
-      if (param.boundary)
-        param.boundary = `"=_${hash(param.boundary)}_="`; // quoted as base64 can contain the tspecial "/"
+    if (!(ct && ct[0] && ct[0].parsed.type === "multipart")) return;
+    for (const param of ct[0].parsed.parameters) if (param.boundary) param.boundary = `"=_${hash(param.boundary)}_="`; // quoted as base64 can contain the tspecial "/"
   }
 
   writeSync(fd: number) {
