@@ -271,8 +271,20 @@ export class Message {
     if (!(ct && ct[0] && ct[0].parsed.type === 'multipart'))
       return null;
 
+    /*
+      In my mailbox I find:
+
+      Content-Type: multipart/signed;
+	boundary="Apple-Mail=_9A03B61D-50E6-4D41-B64E-473BCFD5D818";
+	protocol="application/pkcs7-signature";
+	micalg=sha-256
+      Content-Transfer-Encoding: quoted-printable
+
+      So, let's just ignore the Content-Transfer-Encoding for multipart types.
+
     if (!this.is_identity_encoding_(this.get_encoding_()))
       throw new Error('only 7bit, 8bit, or binary Content-Transfer-Encoding allowed for multipart messages');
+    */
 
     const boundary = this.get_param_('boundary', ct[0].parsed.parameters);
 
