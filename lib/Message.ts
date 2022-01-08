@@ -175,7 +175,7 @@ export class Message {
        */
       if (message_re.lastIndex !== next_match + match[0].length) {
         const unm_len = message_re.lastIndex - (next_match + match[0].length);
-        throw new Error(`unmatched at ${next_match}: "${data.slice(next_match, next_match + unm_len)}"`);
+        throw new Error(`unmatched at ${next_match}: "${this.data.slice(next_match, next_match + unm_len)}"`);
       }
 
       if (match.groups.header) {
@@ -196,7 +196,7 @@ export class Message {
       } else {
         // We should never get a match without matching one of the groups: header, body, or other.
         const unm_len = message_re.lastIndex - (next_match + match[0].length);
-        throw new Error(`unknown match at ${next_match}: "${data.slice(next_match, next_match + unm_len)}"`);
+        throw new Error(`unknown match at ${next_match}: "${this.data.slice(next_match, next_match + unm_len)}"`);
       }
     }
   }
