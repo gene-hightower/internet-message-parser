@@ -214,8 +214,9 @@ export class Message {
         try {
           hdr.parsed = parse(hdr.full_header);
         } catch (ex) {
-          hdr.parsed = null; // Not all structured headers are
-          // required, so let's not throw.
+          // Not all structured headers are required, so ignore parse
+          // failure.
+          hdr.parsed = null;
         }
       }
     }
