@@ -140,14 +140,14 @@ export class Message {
     this.parts = [];
     this.epilogue = null;
 
-    this.coarse_chop_();
-    this.index_headers_();
-    this.parse_structured_headers_();
-    this.sanity_check_headers_(full_message);
-    this.find_parts_();
+    this._coarse_chop();
+    this._index_headers();
+    this._parse_structured_headers();
+    this._sanity_check_headers(full_message);
+    this._find_parts();
   }
 
-  coarse_chop_() {
+  _coarse_chop() {
     // This regex is based on RFC-822 “simple field parsing”
     // specifically section “B.1. SYNTAX” but extended to accept byte
     // values in the range 128 to 255 to support UTF-8 encoding in the
@@ -201,14 +201,14 @@ export class Message {
     }
   }
 
-  index_headers_() {
+  _index_headers() {
     for (const hdr of this.headers) {
       const key = hdr.name.toLowerCase();
       this.hdr_idx[key] = [...(this.hdr_idx[key] || []), hdr];
     }
   }
 
-  parse_structured_headers_() {
+  _parse_structured_headers() {
     for (const hdr of this.headers) {
       if (is_structured_header(hdr.name)) {
         try {
@@ -221,7 +221,7 @@ export class Message {
     }
   }
 
-  sanity_check_headers_(full_message: boolean) {
+  _sanity_check_headers(full_message: boolean) {
     if (full_message) {
       // Required fields for full messages only.
       for (const fld of required) {
@@ -248,7 +248,7 @@ export class Message {
     }
   }
 
-  get_param_(name: string, parameters: Parameter[], def_val?: string) {
+  _get_param(name: string, parameters: Parameter[], def_val?: string) {
     const values = parameters.filter((p) => !!p[name]).map((v) => v[name].trim());
 
     if (values.length === 0 && def_val) values.push(def_val);
@@ -263,7 +263,7 @@ export class Message {
     return uniq[0];
   }
 
-  get_boundary_() {
+  _get_boundary() {
     const ct = this.hdr_idx["content-type"];
     if (!(ct && ct[0] && ct[0].parsed.type === "multipart")) return null;
 
@@ -278,11 +278,11 @@ export class Message {
 
       So, let's just ignore the Content-Transfer-Encoding for multipart types.
 
-    if (!this.is_identity_encoding_(this.get_encoding_()))
+    if (!this._is_identity_encoding(this._get_encoding()))
       throw new Error('only 7bit, 8bit, or binary Content-Transfer-Encoding allowed for multipart messages');
     */
 
-    const boundary = this.get_param_("boundary", ct[0].parsed.parameters);
+    const boundary = this._get_param("boundary", ct[0].parsed.parameters);
 
     if (!/^[ 0-9A-Za-z'\(\)+_,\-\./:=\?]+$/.test(boundary))
       throw new Error(`invalid character in multipart boundary (${boundary})`);
@@ -293,12 +293,12 @@ export class Message {
   }
 
   // <https://www.rfc-editor.org/rfc/rfc2046#section-5.1.1>
-  find_parts_() {
+  _find_parts() {
     if (!this.body)
       // no body, no parts
       return;
 
-    const boundary = this.get_boundary_();
+    const boundary = this._get_boundary();
     if (!boundary) return;
 
     var start_found = false;
@@ -346,13 +346,13 @@ export class Message {
     }
   }
 
-  get_encoding_() {
+  _get_encoding() {
     const ce = this.hdr_idx["content-transfer-encoding"];
     if (ce && ce[0].parsed && ce[0].parsed.mechanism) return ce[0].parsed.mechanism;
     return "8bit"; // <- the RFC suggests 7bit as default
   }
 
-  is_identity_encoding_(enc: Encoding): boolean {
+  _is_identity_encoding(enc: Encoding): boolean {
     switch (enc) {
       case "7bit":
       case "8bit":
@@ -376,13 +376,13 @@ export class Message {
 
     if (ct.type !== "text") return;
 
-    const charset = this.get_param_("charset", ct.parameters, "utf-8").toLowerCase();
+    const charset = this._get_param("charset", ct.parameters, "utf-8").toLowerCase();
 
     const iconv = new Iconv(charset, "utf-8");
 
     // decode this.body
-    const enc = this.get_encoding_();
-    if (this.is_identity_encoding_(enc)) {
+    const enc = this._get_encoding();
+    if (this._is_identity_encoding(enc)) {
       try {
         this.decoded = iconv.convert(this.body).toString();
       } catch (e) {
@@ -434,12 +434,12 @@ export class Message {
 
     if (ct.type !== "text") return;
 
-    const charset = this.get_param_("charset", ct.parameters, "utf-8").toLowerCase();
+    const charset = this._get_param("charset", ct.parameters, "utf-8").toLowerCase();
 
     const iconv = new Iconv("utf-8", charset);
 
-    const enc = this.get_encoding_();
-    if (this.is_identity_encoding_(enc)) {
+    const enc = this._get_encoding();
+    if (this._is_identity_encoding(enc)) {
       this.body = iconv.convert(this.decoded);
       return;
     }
@@ -495,7 +495,7 @@ export class Message {
       fs.writeSync(fd, `\r\n`);
     }
     if (this.parts.length) {
-      const boundary = this.get_boundary_();
+      const boundary = this._get_boundary();
       if (!boundary) {
         throw new Error(`multiple parts without a boundary`);
       }
