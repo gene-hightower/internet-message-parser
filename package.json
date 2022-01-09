@@ -5,11 +5,11 @@
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
   "scripts": {
-    "parser": "node bin/peggy.js -o lib/parser.js --format commonjs src/parser.pegjs",
+    "peggy": "node node_modules/peggy/bin/peggy --plugin ./node_modules/ts-pegjs/src/tspegjs.js --cache --allowed-start-rules field -o lib/message-parser.ts lib/message-parser.pegjs",
     "build": "tsc",
     "clean": "rm -rf node_modules lib/grammar.ts dist",
     "coverage": "jest --collectCoverage -- dist/test/*.test.js",
-    "prepare": "npm run build",
+    "prepare": "npm run peggy && npm run build",
     "test": "jest dist/test/*.test.js"
   },
   "engines": {
