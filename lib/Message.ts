@@ -4,7 +4,7 @@ const libqp = require("libqp");
 const Iconv = require("iconv").Iconv;
 
 import { SyntaxError, parse, structuredHeaders } from "./message-parser";
-import { ContentTransferEncoding, ContentType, Parameter, Encoding } from "./message-types";
+import { MIMEVersion, ContentTransferEncoding, ContentType, Parameter, Encoding } from "./message-types";
 
 // Version of node-re2 that uses latin1; searching by byte value, not
 // by Unicode code-points.
@@ -24,7 +24,7 @@ const unique = [
   "Date",
   "From",
   "In-Reply-To",
-  "Message-Id",
+  "Message-ID",
   "References",
   "Reply-To",
   "Sender",
@@ -44,7 +44,7 @@ const correct = [
   "Date",
   "From",
   "In-Reply-To",
-  // "Message-Id",              // Often incorrect.
+  // "Message-ID",              // Often incorrect.
   // "Received",                // Often incorrect.
   // "References",              // Often incorrect.
   "Reply-To",
@@ -479,34 +479,52 @@ export class Message {
     for (const param of ct[0].parsed.parameters) if (param.boundary) param.boundary = `"=_${hash(param.boundary)}_="`; // quoted as base64 can contain the tspecial "/"
   }
 
-  writeSync(fd: number) {
+  get_data() {
+    // Horrendous inefficient Buffer copies, could be improved.
+    var buf = Buffer.alloc(0);
+
     for (const hdr of this.headers) {
-      if (hdr.parsed instanceof ContentType) {
-        fs.writeSync(fd, `Content-Type: ${hdr.parsed.type}/${hdr.parsed.subtype}`);
-        for (const param of hdr.parsed.parameters) {
-          for (const [k, v] of Object.entries(param)) {
-            fs.writeSync(fd, `;\r\n\t${k}=${v}`);
-          }
-        }
-      } else if (hdr.parsed instanceof ContentTransferEncoding) {
-        fs.writeSync(fd, `Content-Transfer-Encoding: ${hdr.parsed.mechanism}`);
-      } else {
-        fs.writeSync(fd, `${hdr.name}: ${hdr.value}`);
-      }
-      fs.writeSync(fd, `\r\n`);
+      buf = Buffer.concat([buf, Buffer.from(`${hdr.name}: ${hdr.value}\r\n`)]);
     }
+
     if (this.parts.length) {
       const boundary = this._get_boundary();
       if (!boundary) {
         throw new Error(`multiple parts without a boundary`);
       }
       for (const part of this.parts) {
-        fs.writeSync(fd, `\r\n--${boundary}\r\n`);
-        part.writeSync(fd);
+        buf = Buffer.concat([buf, Buffer.from(`\r\n--${boundary}\r\n`)]);
+        buf = Buffer.concat([buf, part.get_data()]);
       }
-      fs.writeSync(fd, `--${boundary}--\r\n`);
+      buf = Buffer.concat([buf, Buffer.from(`--${boundary}--\r\n`)]);
     } else if (this.body) {
-      fs.writeSync(fd, this.body);
+      // If the body exists, it will start with CRLF.
+      buf = Buffer.concat([buf, this.body]);
+    }
+
+    return buf;
+  }
+
+  /* Regenerate canonical textual name and value of parsed headers.
+   */
+  rewrite_headers() {
+    for (const hdr of this.headers) {
+      if (hdr.parsed instanceof ContentType) {
+        var nv = `${hdr.parsed.type}/${hdr.parsed.subtype}`;
+        for (const param of hdr.parsed.parameters) {
+          for (const [k, v] of Object.entries(param)) {
+            nv += `;\r\n\t${k}=${v}`;
+          }
+        }
+        hdr.name = "Content-Type";
+        hdr.value = nv;
+      } else if (hdr.parsed instanceof ContentTransferEncoding) {
+        hdr.name = "Content-Transfer-Encoding";
+        hdr.value = `${hdr.parsed.mechanism}`;
+      } else if (hdr.parsed instanceof MIMEVersion) {
+        hdr.name = "MIME-Version";
+        hdr.value = "1.0";
+      }
     }
   }
 }

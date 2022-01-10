@@ -1,3 +1,6 @@
+export class MIMEVersion {
+}
+
 export type Parameter = Record<string, string>;
 
 export class ContentType {

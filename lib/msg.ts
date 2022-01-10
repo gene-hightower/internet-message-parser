@@ -64,7 +64,6 @@ for (const filename of fs.readdirSync(dir)) {
 
   try {
     if (isFile) {
-      // console.log(`${filepath}`);
       const data = fs.readFileSync(filepath);
 
       try {
@@ -109,22 +108,28 @@ for (const filename of fs.readdirSync(dir)) {
 
       msg.decode();
       msg.change_boundary();
+      msg.rewrite_headers();
       msg.encode();
 
       const ct = msg.hdr_idx["content-type"];
       if (ct && ct[0].parsed?.type === "multipart") {
         count_multipart += 1;
 
-        const outdir = "/tmp/cur";
+        const outdir = "/tmp/Maildir/cur";
         fs.mkdirSync(outdir, { recursive: true });
         const outpath = path.resolve(outdir, filename);
         const fd = fs.openSync(outpath, "w", 0o666);
-        msg.writeSync(fd);
+        const data = msg.get_data();
+        fs.writeSync(fd, data);
         fs.closeSync(fd);
+
+        // log_msg(msg);
+      } else {
+        if (ct && ct[0].parsed?.type) {
+          console.log(`===== ${ct[0].parsed?.type} =====`);
+        }
       }
 
-      // console.log(`===== ${filepath} =====`);
-      // log_msg(msg);
 
       count_messages += 1;
     }
