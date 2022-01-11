@@ -305,7 +305,7 @@ export class Message {
     const boundary = this._get_boundary();
     if (!boundary) return;
 
-    var start_found = false;
+    var boundary_found = false;
     var end_found = false;
     var last_offset = 0;
 
@@ -316,13 +316,15 @@ export class Message {
     var match;
     while ((match = multi_re.exec(this.body))) {
       if (match.groups.start) {
-        start_found = true;
+        boundary_found = true;
       } else if (match.groups.encap) {
-        start_found = true;
-        if (last_offset === 0) {
-          if (match.index !== 0) {
-            this.preamble = this.body.slice(0, match.index);
-          }
+        if (!boundary_found) {
+          // The preamble includes the CRLF before the “dash-boundary.”
+          var idx = match.index;
+          if (this.body[idx] === 13) ++idx; // '\r' is decimal 13
+          ++idx;
+          this.preamble = this.body.slice(0, idx);
+          boundary_found = true;
         } else {
           this.parts.push(new Message(this.body.slice(last_offset, match.index), false));
         }
@@ -331,7 +333,7 @@ export class Message {
           throw new Error(`second copy of close-delimiter at offset ${match.index}`);
         }
         end_found = true;
-        if (!start_found || last_offset === 0) {
+        if (!boundary_found || last_offset === 0) {
           throw new Error(`close-delimiter found at offset ${match.index} before any dash-boundary`);
         }
         this.parts.push(new Message(this.body.slice(last_offset, match.index), false));
@@ -340,9 +342,10 @@ export class Message {
     }
 
     if (last_offset != this.body.length) {
+      // The epilogue includes any CRLF found after the “close-delimiter.”
       this.epilogue = this.body.slice(last_offset);
     }
-    if (!start_found) {
+    if (!boundary_found) {
       throw new Error(`no dash-boundary (${boundary}) found`);
     }
     if (!end_found) {
@@ -528,10 +531,9 @@ export class Message {
         throw new Error(`multiple parts without a boundary`);
       }
       for (const part of this.parts) {
-        buf = Buffer.concat([buf, Buffer.from(`\r\n--${boundary}\r\n`)]);
-        buf = Buffer.concat([buf, part.get_data()]);
+        buf = Buffer.concat([buf, Buffer.from(`\r\n--${boundary}\r\n`), part.get_data()]);
       }
-      buf = Buffer.concat([buf, Buffer.from(`--${boundary}--\r\n`)]);
+      buf = Buffer.concat([buf, Buffer.from(`\r\n--${boundary}--`)]);
     } else if (this.body) {
       // If the body exists, it will start with CRLF.
       buf = Buffer.concat([buf, this.body]);
