@@ -321,3 +321,157 @@ describe("RFC-5322 A.5. White Space, Comments, and Other Oddities", () => {
     expect(msg.decoded).toEqual("Testing.\r\n");
   });
 });
+
+
+describe("RFC-2045", () => {
+  it("MIME-Version", () => {
+    const msg_text = Buffer.from(
+      dedent`
+        MIME-Version: 1.0
+        MIME-Version: 1.0 (produced by MetaSend Vx.x)
+        MIME-Version: (produced by MetaSend Vx.x) 1.0
+        MIME-Version: 1.(produced by MetaSend Vx.x)0
+        Content-type: text/plain; charset=us-ascii (Plain text)
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
+
+    const msg = new Message(msg_text, false);
+    msg.decode();
+
+    expect(msg.hdr_idx["mime-version"][0].parsed);
+    expect(msg.hdr_idx["content-type"][0].parsed);
+    expect(msg.hdr_idx["content-type"][0].parsed.type).toEqual('text');
+    expect(msg.hdr_idx["content-type"][0].parsed.subtype).toEqual('plain');
+  });
+});
+
+describe("RFC-2046 5.1.1. Common Syntax", () => {
+  it("multipart, simple boundary", () => {
+    const msg_text = Buffer.from(
+      dedent`
+        From: Nathaniel Borenstein <nsb@bellcore.com>
+        To: Ned Freed <ned@innosoft.com>
+        Date: Sun, 21 Mar 1993 23:56:48 -0800 (PST)
+        Subject: Sample message
+        MIME-Version: 1.0
+        Content-type: multipart/mixed; boundary="simple boundary"
+
+        This is the preamble.  It is to be ignored, though it
+        is a handy place for composition agents to include an
+        explanatory note to non-MIME conformant readers.
+
+        --simple boundary
+
+        This is implicitly typed plain US-ASCII text.
+        It does NOT end with a linebreak.
+        --simple boundary
+        Content-type: text/plain; charset=us-ascii
+
+        This is explicitly typed plain US-ASCII text.
+        It DOES end with a linebreak.
+
+        --simple boundary--
+
+        This is the epilogue.  It is also to be ignored.
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
+
+    const msg = new Message(msg_text);
+    msg.decode();
+
+    expect(msg.hdr_idx["from"][0].parsed);
+    expect(msg.hdr_idx["to"][0].parsed);
+    expect(msg.hdr_idx["date"][0].parsed);
+    expect(msg.hdr_idx["subject"][0].value).toEqual("Sample message");
+
+    expect(msg.hdr_idx["content-type"][0].parsed.type).toEqual('multipart');
+    expect(msg.hdr_idx["content-type"][0].parsed.subtype).toEqual('mixed');
+
+    expect(msg.preamble).toEqual(Buffer.from(
+      dedent`
+        This is the preamble.  It is to be ignored, though it
+        is a handy place for composition agents to include an
+        explanatory note to non-MIME conformant readers.
+
+
+      `.replace(/\n/g, "\r\n")));
+
+    expect(msg.parts.length).toEqual(2);
+    expect(msg.parts[0].decoded).toEqual(`This is implicitly typed plain US-ASCII text.\r\nIt does NOT end with a linebreak.`);
+    expect(msg.parts[1].decoded).toEqual(`This is explicitly typed plain US-ASCII text.\r\nIt DOES end with a linebreak.\r\n`);
+
+    expect(msg.epilogue).toEqual(Buffer.from(
+      dedent`
+
+          This is the epilogue.  It is also to be ignored.
+
+      `.replace(/\n/g, "\r\n")));
+
+    expect(msg.parts[1].hdr_idx["content-type"][0].parsed.type).toEqual('text');
+    expect(msg.parts[1].hdr_idx["content-type"][0].parsed.subtype).toEqual('plain');
+  });
+});
+
+describe("RFC-2046 5.2.3.7. Examples and Further Explanations", () => {
+  it("message/external-body", () => {
+    const msg_text = Buffer.from(
+      dedent`
+        From: Whomever@example.com
+        To: Someone@example.com
+        Date: Fri, 21 Nov 1997 09:55:06 -0600
+        Subject: whatever
+        MIME-Version: 1.0
+        Message-ID: <id1@host.com>
+        Content-Type: multipart/alternative; boundary=42
+        Content-ID: <id001@guppylake.bellcore.com>
+
+        --42
+        Content-Type: message/external-body; name="BodyFormats.ps";
+                      site="thumper.bellcore.com"; mode="image";
+                      access-type=ANON-FTP; directory="pub";
+                      expiration="Fri, 14 Jun 1991 19:13:14 -0400 (EDT)"
+
+        Content-type: application/postscript
+        Content-ID: <id42@guppylake.bellcore.com>
+
+        --42
+        Content-Type: message/external-body; access-type=local-file;
+                      name="/u/nsb/writing/rfcs/RFC-MIME.ps";
+                      site="thumper.bellcore.com";
+                      expiration="Fri, 14 Jun 1991 19:13:14 -0400 (EDT)"
+
+        Content-type: application/postscript
+        Content-ID: <id42@guppylake.bellcore.com>
+
+        --42
+        Content-Type: message/external-body;
+                      access-type=mail-server;
+                      server="listserv@bogus.bitnet";
+                      expiration="Fri, 14 Jun 1991 19:13:14 -0400 (EDT)"
+
+        Content-type: application/postscript
+        Content-ID: <id42@guppylake.bellcore.com>
+
+        get RFC-MIME.DOC
+
+        --42--
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
+
+    const msg = new Message(msg_text);
+    msg.decode();
+
+    expect(msg.hdr_idx["from"][0].parsed);
+    expect(msg.hdr_idx["to"][0].parsed);
+    expect(msg.hdr_idx["date"][0].parsed);
+    expect(msg.hdr_idx["subject"][0].value).toEqual("whatever");
+
+    expect(msg.hdr_idx["content-type"][0].parsed.type).toEqual('multipart');
+    expect(msg.hdr_idx["content-type"][0].parsed.subtype).toEqual('alternative');
+
+    expect(msg.parts.length).toEqual(3);
+
+    expect(msg.parts[1].hdr_idx["content-type"][0].parsed.type).toEqual('message');
+    expect(msg.parts[1].hdr_idx["content-type"][0].parsed.subtype).toEqual('external-body');
+  });
+});
