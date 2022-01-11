@@ -124,9 +124,9 @@ export class Message {
   decoded: string | null;
 
   // MIME multipart deconstruction
-  preamble: Buffer | null; // [preamble CRLF] <- buffer content includes the CRLF
+  preamble: Buffer | null; // [preamble CRLF] <- buffer content excludes the CRLF
   parts: Message[];
-  epilogue: Buffer | null; // [CRLF epilogue] <- buffer content includes the CRLF
+  epilogue: Buffer | null; // [CRLF epilogue] <- buffer content excludes the CRLF
 
   constructor(data: Buffer, full_message?: boolean) {
     if (!Buffer.isBuffer(data)) {
@@ -170,10 +170,10 @@ export class Message {
                                  '(?<field_body>' +
                                    '(?:(?:(?:\\r?\\n)?(?:\\x20|\\x09))*[\\x00-\\xFF]*?)*(?:\\r?\\n))' +
                                ')|' +
-                               '(?<body>\\r?\\n[\\x00-\\xFF]*$)|' +
+                               '(\\r?\\n(?<body>[\\x00-\\xFF]*$))|' +
                                '(?<other>[^\\r\\n]+)', 'gs');
-    var next_match = 0; // offset where we expect to find the next match
-    var match;
+    let next_match = 0; // offset where we expect to find the next match
+    let match;
     while ((match = message_re.exec(this.data))) {
       /* Check to see we haven't skipped over any bytes that did not
        * match either a header, or a body, or other.
@@ -307,22 +307,22 @@ export class Message {
     const boundary = this._get_boundary();
     if (!boundary) return;
 
-    var boundary_found = false;
-    var end_found = false;
-    var last_offset = 0;
+    let boundary_found = false;
+    let end_found = false;
+    let last_offset = 0;
 
     // prettier-ignore
     const multi_re = new RE2('^(?<start>--' + escapeRegExp(boundary) + '[ \t]*\r?\n)|' +
                              '(?<encap>\r?\n--' + escapeRegExp(boundary) + '[ \t]*\r?\n)|' +
                              '(?<end>\r?\n--' + escapeRegExp(boundary) + '--[ \t]*)', 'gs');
-    var match;
+    let match;
     while ((match = multi_re.exec(this.body))) {
       if (match.groups.start) {
         boundary_found = true;
       } else if (match.groups.encap) {
         if (!boundary_found) {
-          // The preamble includes the CRLF before the “dash-boundary.”
-          var idx = match.index;
+          // Strip off the CRLF before the “dash-boundary.”
+          let idx = match.index;
           if (this.body[idx] === 13) ++idx; // skip (optional) '\r'
           ++idx; // skip '\n'
           this.preamble = this.body.slice(0, idx);
@@ -344,8 +344,11 @@ export class Message {
     }
 
     if (last_offset != this.body.length) {
-      // The epilogue includes any CRLF found after the “close-delimiter.”
-      this.epilogue = this.body.slice(last_offset);
+      // The epilogue excludes the CRLF found after the “close-delimiter.”
+      let idx = last_offset;
+      if (this.body[idx] === 13) ++idx; // skip (optional) '\r'
+      ++idx; // skip '\n'
+      this.epilogue = this.body.slice(idx);
     }
     if (!boundary_found) {
       throw new Error(`no dash-boundary (${boundary}) found`);
@@ -401,7 +404,7 @@ export class Message {
 
     if (ct.type !== "text") return;
 
-    var body;
+    let body;
     const enc = this._get_transfer_encoding();
     switch (enc) {
       case "7bit":
@@ -470,7 +473,7 @@ export class Message {
 
     const iconv = new Iconv("utf-8", charset);
 
-    var body;
+    let body;
     try {
       body = iconv.convert(this.decoded);
     } catch (e) {
@@ -522,7 +525,7 @@ export class Message {
 
   get_data() {
     // Horrendous inefficient Buffer copies, could be improved.
-    var buf = Buffer.alloc(0);
+    let buf = Buffer.alloc(0);
 
     for (const hdr of this.headers) {
       buf = Buffer.concat([buf, Buffer.from(`${hdr.name}: ${hdr.value}\r\n`)]);
@@ -538,8 +541,7 @@ export class Message {
       }
       buf = Buffer.concat([buf, Buffer.from(`\r\n--${boundary}--`)]);
     } else if (this.body) {
-      // If the body exists, it will start with CRLF.
-      buf = Buffer.concat([buf, this.body]);
+      buf = Buffer.concat([buf, Buffer.from(`\r\n`), this.body]);
     }
 
     return buf;
@@ -550,7 +552,7 @@ export class Message {
   rewrite_headers() {
     for (const hdr of this.headers) {
       if (hdr.parsed instanceof ContentType) {
-        var nv = `${hdr.parsed.type}/${hdr.parsed.subtype}`;
+        let nv = `${hdr.parsed.type}/${hdr.parsed.subtype}`;
         for (const param of hdr.parsed.parameters) {
           for (const [k, v] of Object.entries(param)) {
             nv += `;\r\n\t${k}=${v}`;
