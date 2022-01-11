@@ -128,10 +128,12 @@ export class Message {
   parts: Message[];
   epilogue: Buffer | null; // [CRLF epilogue] <- buffer content includes the CRLF
 
-  constructor(data: Buffer, full_message: boolean) {
+  constructor(data: Buffer, full_message?: boolean) {
     if (!Buffer.isBuffer(data)) {
       throw new TypeError(`Message ctor must take a Buffer, not ${typeof data}`);
     }
+    if (full_message === undefined)
+      full_message = true;
     this.data = data;
     this.headers = [];
     this.hdr_idx = {};
