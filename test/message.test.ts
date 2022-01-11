@@ -4,11 +4,13 @@ import { Message, is_structured_header } from "../lib/Message";
 
 describe("RFC-822 full header examples", () => {
   it("A.3.1. Minimum required", () => {
-    const msg_text = Buffer.from(dedent`
+    const msg_text = Buffer.from(
+      dedent`
         Date:     26 Aug 76 14:29 EDT
         From:     Jones@Registry.Org
         Bcc:
-    `.replace("\n", "\r\n") + "\r\n"); // CRLF line endings
+    `.replace("\n", "\r\n") + "\r\n"
+    ); // CRLF line endings
 
     const msg = new Message(msg_text);
 
@@ -17,11 +19,13 @@ describe("RFC-822 full header examples", () => {
   });
 
   it("A.3.1. “or” Minimum required", () => {
-    const msg_text = Buffer.from(dedent`
+    const msg_text = Buffer.from(
+      dedent`
         Date:     26 Aug 76 14:29 EDT (the ':' is required by RFC-822 syntax)
         From:     Jones@Registry.Org
         To:       Smith@Registry.Org
-    `.replace("\n", "\r\n") + "\r\n"); // CRLF line endings
+    `.replace("\n", "\r\n") + "\r\n"
+    ); // CRLF line endings
 
     const msg = new Message(msg_text);
 
@@ -31,14 +35,16 @@ describe("RFC-822 full header examples", () => {
   });
 
   it("A.3.2. Using some of the additional fields", () => {
-    const msg_text = Buffer.from(dedent`
+    const msg_text = Buffer.from(
+      dedent`
         Date:     26 Aug 76 14:30 EDT
         From:     George Jones<Group@Host>
         Sender:   Secy@SHOST
         To:       "Al Neuman"@Mad-Host,
                   Sam.Irving@Other-Host
         Message-ID:  <some.string@SHOST>
-    `.replace("\n", "\r\n") + "\r\n"); // CRLF line endings
+    `.replace("\n", "\r\n") + "\r\n"
+    ); // CRLF line endings
 
     const msg = new Message(msg_text);
 
@@ -50,7 +56,8 @@ describe("RFC-822 full header examples", () => {
   });
 
   it("A.3.3. About as complex as you're going to get", () => {
-    const msg_text = Buffer.from(dedent`
+    const msg_text = Buffer.from(
+      dedent`
         Date     :  27 Aug 76 09:32 PDT (the ':' is required by RFC-822 syntax)
         From     :  Ken Davis <KDavis@This-Host.This-net>
         Subject  :  Re: The Syntax in the RFC
@@ -74,13 +81,14 @@ describe("RFC-822 full header examples", () => {
                     "Special-action", but its name might later be
                     preempted
         Message-ID: <4231.629.XYzi-What@Other-Host>
-    `.replace("\n", "\r\n") + "\r\n"); // CRLF line endings
+    `.replace("\n", "\r\n") + "\r\n"
+    ); // CRLF line endings
 
     const msg = new Message(msg_text);
 
     expect(msg.hdr_idx["date"][0].parsed);
     expect(msg.hdr_idx["from"][0].parsed);
-    expect(msg.hdr_idx["subject"][0].value).toEqual('Re: The Syntax in the RFC');
+    expect(msg.hdr_idx["subject"][0].value).toEqual("Re: The Syntax in the RFC");
     expect(msg.hdr_idx["sender"][0].parsed);
     expect(msg.hdr_idx["reply-to"][0].parsed);
     expect(msg.hdr_idx["to"][0].parsed);
@@ -94,7 +102,8 @@ describe("RFC-822 full header examples", () => {
 
 describe("RFC-5322 A.1. Addressing Examples", () => {
   it("A.1.1. A Message from One Person to Another with Simple Addressing", () => {
-    const msg_text = Buffer.from(dedent`
+    const msg_text = Buffer.from(
+      dedent`
         From: John Doe <jdoe@machine.example>
         To: Mary Smith <mary@example.net>
         Subject: Saying Hello
@@ -103,7 +112,8 @@ describe("RFC-5322 A.1. Addressing Examples", () => {
 
         This is a message just to say hello.
         So, "Hello".
-    `.replace(/\n/g, "\r\n") + "\r\n"); // CRLF line endings
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
 
     const msg = new Message(msg_text);
     msg.decode();
@@ -118,7 +128,8 @@ describe("RFC-5322 A.1. Addressing Examples", () => {
   });
 
   it("A.1.2 Different Types of Mailboxes", () => {
-    const msg_text = Buffer.from(dedent`
+    const msg_text = Buffer.from(
+      dedent`
         From: "Joe Q. Public" <john.q.public@example.com>
         To: Mary Smith <mary@x.test>, jdoe@example.org, Who? <one@y.test>
         Cc: <boss@nil.test>, "Giant; \\"Big\\" Box" <sysservices@example.net>
@@ -126,7 +137,8 @@ describe("RFC-5322 A.1. Addressing Examples", () => {
         Message-ID: <5678.21-Nov-1997@example.com>
 
         Hi everyone.
-    `.replace(/\n/g, "\r\n") + "\r\n"); // CRLF line endings
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
 
     const msg = new Message(msg_text);
     msg.decode();
@@ -137,11 +149,12 @@ describe("RFC-5322 A.1. Addressing Examples", () => {
     expect(msg.hdr_idx["date"][0].parsed);
     expect(msg.hdr_idx["message-id"][0].parsed);
 
-    expect(msg.decoded).toEqual('Hi everyone.\r\n');
+    expect(msg.decoded).toEqual("Hi everyone.\r\n");
   });
 
   it("A.1.3 Group Addresses", () => {
-    const msg_text = Buffer.from(dedent`
+    const msg_text = Buffer.from(
+      dedent`
         From: Pete <pete@silly.example>
         To: A Group:Ed Jones <c@a.test>,joe@where.test,John <jdoe@one.test>;
         Cc: Undisclosed recipients:;
@@ -149,7 +162,8 @@ describe("RFC-5322 A.1. Addressing Examples", () => {
         Message-ID: <testabcd.1234@silly.example>
 
         Testing.
-    `.replace(/\n/g, "\r\n") + "\r\n"); // CRLF line endings
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
 
     const msg = new Message(msg_text);
     msg.decode();
@@ -161,13 +175,14 @@ describe("RFC-5322 A.1. Addressing Examples", () => {
     expect(msg.hdr_idx["date"][0].parsed);
     expect(msg.hdr_idx["message-id"][0].parsed);
 
-    expect(msg.decoded).toEqual('Testing.\r\n');
+    expect(msg.decoded).toEqual("Testing.\r\n");
   });
 });
 
 describe("RFC-5322 A.2. Reply Messages", () => {
   it("A.2 Reply Message", () => {
-    const msg_text = Buffer.from(dedent`
+    const msg_text = Buffer.from(
+      dedent`
         From: Mary Smith <mary@example.net>
         To: John Doe <jdoe@machine.example>
         Reply-To: "Mary Smith: Personal Account" <smith@home.example>
@@ -178,7 +193,8 @@ describe("RFC-5322 A.2. Reply Messages", () => {
         References: <1234@local.machine.example>
 
         This is a reply to your hello.
-    `.replace(/\n/g, "\r\n") + "\r\n"); // CRLF line endings
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
 
     const msg = new Message(msg_text);
     msg.decode();
@@ -192,13 +208,14 @@ describe("RFC-5322 A.2. Reply Messages", () => {
     expect(msg.hdr_idx["in-reply-to"][0].parsed);
     expect(msg.hdr_idx["references"][0].parsed);
 
-    expect(msg.decoded).toEqual('This is a reply to your hello.\r\n');
+    expect(msg.decoded).toEqual("This is a reply to your hello.\r\n");
   });
 });
 
 describe("RFC-5322 A.3. Resent Messages", () => {
   it("A.3 Resent Message", () => {
-    const msg_text = Buffer.from(dedent`
+    const msg_text = Buffer.from(
+      dedent`
         Resent-From: Mary Smith <mary@example.net>
         Resent-To: Jane Brown <j-brown@other.example>
         Resent-Date: Mon, 24 Nov 1997 14:22:01 -0800
@@ -211,7 +228,8 @@ describe("RFC-5322 A.3. Resent Messages", () => {
 
         This is a message just to say hello.
         So, "Hello".
-    `.replace(/\n/g, "\r\n") + "\r\n"); // CRLF line endings
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
 
     const msg = new Message(msg_text);
     msg.decode();
@@ -233,7 +251,8 @@ describe("RFC-5322 A.3. Resent Messages", () => {
 
 describe("RFC-5322 A.4. Messages with Trace Fields", () => {
   it("A.4 Message with Trace Fields", () => {
-    const msg_text = Buffer.from(dedent`
+    const msg_text = Buffer.from(
+      dedent`
         Received: from x.y.test
            by example.net
            via TCP
@@ -249,7 +268,8 @@ describe("RFC-5322 A.4. Messages with Trace Fields", () => {
 
         This is a message just to say hello.
         So, "Hello".
-    `.replace(/\n/g, "\r\n") + "\r\n"); // CRLF line endings
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
 
     const msg = new Message(msg_text);
     msg.decode();
@@ -265,12 +285,12 @@ describe("RFC-5322 A.4. Messages with Trace Fields", () => {
 
     expect(msg.decoded).toEqual('This is a message just to say hello.\r\nSo, "Hello".\r\n');
   });
-
 });
 
 describe("RFC-5322 A.5. White Space, Comments, and Other Oddities", () => {
   it("A.5 White Space, Comments, and Other Oddities", () => {
-    const msg_text = Buffer.from(dedent`
+    const msg_text = Buffer.from(
+      dedent`
         From: Pete(A nice \\) chap) <pete(his account)@silly.test(his host)>
         To:A Group(Some people)
              :Chris Jones <c@(Chris's host.)public.example>,
@@ -286,7 +306,8 @@ describe("RFC-5322 A.5. White Space, Comments, and Other Oddities", () => {
         Message-ID:              <testabcd.1234@silly.test>
 
         Testing.
-    `.replace(/\n/g, "\r\n") + "\r\n"); // CRLF line endings
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
 
     const msg = new Message(msg_text);
     msg.decode();
@@ -297,6 +318,6 @@ describe("RFC-5322 A.5. White Space, Comments, and Other Oddities", () => {
     expect(msg.hdr_idx["date"][0].parsed);
     expect(msg.hdr_idx["message-id"][0].parsed);
 
-    expect(msg.decoded).toEqual('Testing.\r\n');
+    expect(msg.decoded).toEqual("Testing.\r\n");
   });
 });

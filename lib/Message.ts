@@ -132,8 +132,7 @@ export class Message {
     if (!Buffer.isBuffer(data)) {
       throw new TypeError(`Message ctor must take a Buffer, not ${typeof data}`);
     }
-    if (full_message === undefined)
-      full_message = true;
+    if (full_message === undefined) full_message = true;
     this.data = data;
     this.headers = [];
     this.hdr_idx = {};
