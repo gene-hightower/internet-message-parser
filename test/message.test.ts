@@ -18,7 +18,7 @@ describe("RFC-822 examples", () => {
 
   it("A.3.1. “or” Minimum required", () => {
     const msg_text = Buffer.from(dedent`
-        Date:     26 Aug 76 14:29 EDT
+        Date:     26 Aug 76 14:29 EDT (the ':' is required by RFC-822 syntax)
         From:     Jones@Registry.Org
         To:       Smith@Registry.Org
     `.replace("\n", "\r\n") + "\r\n"); // CRLF line endings
@@ -80,14 +80,14 @@ describe("RFC-822 examples", () => {
 
     expect(msg.hdr_idx["date"][0].parsed);
     expect(msg.hdr_idx["from"][0].parsed);
-    expect(msg.hdr_idx["subject"][0]);
+    expect(msg.hdr_idx["subject"][0]); // <- unstructured
     expect(msg.hdr_idx["sender"][0].parsed);
     expect(msg.hdr_idx["reply-to"][0].parsed);
     expect(msg.hdr_idx["to"][0].parsed);
     expect(msg.hdr_idx["cc"][0].parsed);
-    expect(msg.hdr_idx["comment"][0]);
+    expect(msg.hdr_idx["comment"][0]); // <- unstructured
     expect(msg.hdr_idx["in-reply-to"][0].parsed);
-    expect(msg.hdr_idx["x-special-action"][0]);
+    expect(msg.hdr_idx["x-special-action"][0]); // <- non-standard
     expect(msg.hdr_idx["message-id"][0].parsed);
   });
 
