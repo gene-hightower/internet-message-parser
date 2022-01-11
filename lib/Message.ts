@@ -124,9 +124,9 @@ export class Message {
   decoded: string | null;
 
   // MIME multipart deconstruction
-  preamble: Buffer | null; // [preamble CRLF]
+  preamble: Buffer | null; // [preamble CRLF] <- buffer content includes the CRLF
   parts: Message[];
-  epilogue: Buffer | null; // [CRLF epilogue]
+  epilogue: Buffer | null; // [CRLF epilogue] <- buffer content includes the CRLF
 
   constructor(data: Buffer, full_message: boolean) {
     if (!Buffer.isBuffer(data)) {
