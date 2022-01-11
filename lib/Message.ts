@@ -321,8 +321,8 @@ export class Message {
         if (!boundary_found) {
           // The preamble includes the CRLF before the “dash-boundary.”
           var idx = match.index;
-          if (this.body[idx] === 13) ++idx; // '\r' is decimal 13
-          ++idx;
+          if (this.body[idx] === 13) ++idx; // skip (optional) '\r'
+          ++idx; // skip '\n'
           this.preamble = this.body.slice(0, idx);
           boundary_found = true;
         } else {
@@ -392,9 +392,10 @@ export class Message {
     }
     if (!this.body) return;
 
+    // prettier-ignore
     const ct = this.hdr_idx["content-type"]
-      ? this.hdr_idx["content-type"][0].parsed
-      : parse(default_content_type);
+             ? this.hdr_idx["content-type"][0].parsed
+             : parse(default_content_type);
 
     if (ct.type !== "text") return;
 
@@ -474,7 +475,7 @@ export class Message {
       const ex = e as NodeJS.ErrnoException;
       if (ex.code === "EILSEQ") {
         // Now we fall-back to Unicode, which should always work.
-        if (!ctf) throw ex;           // we should never get a conversion error unless the ctf is set
+        if (!ctf) throw ex; // we should never get a conversion error unless the ctf is set
         const new_ctv = `text/${ctf[0].parsed.subtype}; charset=utf-8`;
         const new_full = `Content-Type: ${new_ctv}\r\n`;
         ctf[0] = {
@@ -485,7 +486,7 @@ export class Message {
         };
         body = Buffer.from(this.decoded);
       } else {
-        throw ex;                 // no idea what other type of exception this could be
+        throw ex; // no idea what other type of exception this could be
       }
     }
 
