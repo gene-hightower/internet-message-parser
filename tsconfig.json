@@ -17,6 +17,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": [ "lib" ]
+  "include": ["lib", "test"]
 }
-
