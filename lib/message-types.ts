@@ -1,5 +1,4 @@
-export class MIMEVersion {
-}
+export class MIMEVersion {}
 
 export type Parameter = Record<string, string>;
 
