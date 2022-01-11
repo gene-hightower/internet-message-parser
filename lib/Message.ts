@@ -10,6 +10,9 @@ import { MIMEVersion, ContentTransferEncoding, ContentType, Parameter, Encoding 
 // by Unicode code-points.
 const RE2 = require("re2-latin1");
 
+const default_ct_value = `text/plain; charset=utf-8`;
+const default_content_type = `Content-Type: ${default_ct_value}\r\n`;
+
 // Required to be present in full messages, but not MIME parts.
 const required = [
   // "Date",                    // Often missing on legit messages.
@@ -249,10 +252,10 @@ export class Message {
     }
   }
 
-  _get_param(name: string, parameters: Parameter[], def_val?: string) {
+  _get_param(name: string, parameters: Parameter[], default_value?: string) {
     const values = parameters.filter((p) => !!p[name]).map((v) => v[name].trim());
 
-    if (values.length === 0 && def_val) values.push(def_val);
+    if (values.length === 0 && default_value) values.push(default_value);
 
     const canon = values.map((v) => (v.startsWith('"') ? canonicalize_quoted_string(unquote(v)) : v));
 
@@ -347,7 +350,7 @@ export class Message {
     }
   }
 
-  _get_encoding() {
+  _get_transfer_encoding() {
     const ce = this.hdr_idx["content-transfer-encoding"];
     if (ce && ce[0].parsed && ce[0].parsed.mechanism) return ce[0].parsed.mechanism;
     return "8bit"; // <- the RFC suggests 7bit as default
@@ -363,75 +366,97 @@ export class Message {
     return false;
   }
 
+  /* Call a function “f” to transform each text type body part.
+   */
+  all_text_parts(f: (body: string, subtype: string) => string) {
+    if (this.parts.length) {
+      for (const part of this.parts) {
+        part.all_text_parts(f);
+      }
+    } else if (this.decoded) {
+      const ct = this.hdr_idx["content-type"];
+      const subtype = ct && ct[0].parsed ? ct[0].parsed.subtype : "plain";
+      this.decoded = f(this.decoded, subtype);
+    }
+  }
+
+  /* Decode all text type body parts into a JS string “decoded.”
+   */
   decode() {
     if (this.parts.length) {
       for (const part of this.parts) part.decode();
       return;
     }
-
     if (!this.body) return;
 
     const ct = this.hdr_idx["content-type"]
       ? this.hdr_idx["content-type"][0].parsed
-      : parse('Content-Type: text/plain; charset="utf-8"\r\n');
+      : parse(default_content_type);
 
     if (ct.type !== "text") return;
 
-    const charset = this._get_param("charset", ct.parameters, "utf-8").toLowerCase();
-
-    const iconv = new Iconv(charset, "utf-8");
-
-    // decode this.body
-    const enc = this._get_encoding();
-    if (this._is_identity_encoding(enc)) {
-      try {
-        this.decoded = iconv.convert(this.body).toString();
-      } catch (e) {
-        const ex = e as NodeJS.ErrnoException;
-        if (ex.code === "EILSEQ") {
-          ex.message = `Illegal character sequence decoding ${enc}, charset="${charset}"`;
-        }
-        throw ex;
-      }
-      return;
-    }
-
+    var body;
+    const enc = this._get_transfer_encoding();
     switch (enc) {
+      case "7bit":
+      case "8bit":
+      case "binary":
+        body = this.body;
+        break;
+
       case "quoted-printable":
-        const s = this.body.toString("ascii");
-        const dec = libqp.decode(s);
-        try {
-          this.decoded = iconv.convert(dec).toString();
-        } catch (e) {
-          const ex = e as NodeJS.ErrnoException;
-          if (ex.code === "EILSEQ") {
-            ex.message = `Illegal character sequence decoding ${enc}, charset="${charset}"`;
-          }
-          throw ex;
-        }
+        // This is an extension, UTF-8 data in quoted-printable:
+        body = libqp.decode(this.body.toString());
         break;
 
       case "base64":
-        this.decoded = iconv.convert(this.body.toString("base64")).toString();
+        body = this.body.toString("base64");
         break;
 
       default:
         throw new Error(`unknown Content-Transfer-Encoding ${enc}`);
         break;
     }
+
+    const charset = this._get_param("charset", ct.parameters, "utf-8").toLowerCase();
+
+    const iconv = new Iconv(charset, "utf-8");
+
+    // decode body
+    try {
+      this.decoded = iconv.convert(body).toString();
+    } catch (e) {
+      const ex = e as NodeJS.ErrnoException;
+      if (ex.code === "EILSEQ") {
+        ex.message = `Illegal character sequence decoding ${enc}, charset="${charset}"`;
+        try {
+          // Try again assuming UTF-8.
+          this.decoded = body.toString();
+          return;
+        } catch (ee) {
+          const eex = ee as NodeJS.ErrnoException;
+          if (eex.code === "EILSEQ") {
+            eex.message = `Illegal character sequence decoding ${enc}, charset="${charset}"`;
+          }
+          throw eex;
+        }
+      }
+      throw ex;
+    }
   }
 
+  /* Encode each decoded text body part into a the Buffer “body” using
+   * Content-Type and Content-Transfer-Encoding.
+   */
   encode() {
     if (this.parts.length) {
       for (const part of this.parts) part.encode();
       return;
     }
-
     if (!this.decoded) return;
 
-    const ct = this.hdr_idx["content-type"]
-      ? this.hdr_idx["content-type"][0].parsed
-      : parse('Content-Type: text/plain; charset="utf-8"\r\n');
+    const ctf = this.hdr_idx["content-type"];
+    const ct = ctf ? ctf[0].parsed : parse(default_content_type);
 
     if (ct.type !== "text") return;
 
@@ -439,32 +464,42 @@ export class Message {
 
     const iconv = new Iconv("utf-8", charset);
 
-    const enc = this._get_encoding();
-    if (this._is_identity_encoding(enc)) {
-      this.body = iconv.convert(this.decoded);
-      return;
+    var body;
+    try {
+      body = iconv.convert(this.decoded);
+    } catch (e) {
+      const ex = e as NodeJS.ErrnoException;
+      if (ex.code === "EILSEQ") {
+        // Now we fall-back to Unicode, which should always work.
+        if (!ctf) throw ex;           // we should never get a conversion error unless the ctf is set
+        const new_ctv = `text/${ctf[0].parsed.subtype}; charset=utf-8`;
+        const new_full = `Content-Type: ${new_ctv}\r\n`;
+        ctf[0] = {
+          name: "Content-Type",
+          value: new_ctv,
+          full_header: new_full,
+          parsed: parse(new_full),
+        };
+        body = Buffer.from(this.decoded);
+      } else {
+        throw ex;                 // no idea what other type of exception this could be
+      }
     }
 
+    const enc = this._get_transfer_encoding();
     switch (enc) {
+      case "7bit":
+      case "8bit":
+      case "binary":
+        this.body = body;
+        break;
+
       case "quoted-printable":
-        try {
-          this.body = Buffer.from(`${libqp.wrap(libqp.encode(iconv.convert(this.decoded)))}\r\n`);
-        } catch (e) {
-          const ex = e as NodeJS.ErrnoException;
-          if (ex.code === "EILSEQ") {
-            ex.message = `Illegal character sequence in encode() for charset="${charset}"`;
-          }
-          throw ex;
-        }
+        this.body = Buffer.from(`${libqp.wrap(libqp.encode(body))}\r\n`);
         break;
 
       case "base64":
-        this.body = Buffer.from(
-          iconv
-            .convert(this.decoded)
-            .toString("base64")
-            .replace(/(.{1,76})/g, "$1\r\n")
-        );
+        this.body = Buffer.from(body.toString("base64").replace(/(.{1,76})/g, "$1\r\n"));
         break;
 
       default:
@@ -476,7 +511,7 @@ export class Message {
   change_boundary() {
     const ct = this.hdr_idx["content-type"];
     if (!(ct && ct[0] && ct[0].parsed.type === "multipart")) return;
-    for (const param of ct[0].parsed.parameters) if (param.boundary) param.boundary = `"=_${hash(param.boundary)}_="`; // quoted as base64 can contain the tspecial "/"
+    for (const param of ct[0].parsed.parameters) if (param.boundary) param.boundary = `"=_${hash(param.boundary)}_="`;
   }
 
   get_data() {

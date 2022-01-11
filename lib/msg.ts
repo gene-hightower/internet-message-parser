@@ -43,8 +43,8 @@ function log_msg(msg: Message) {
     if (msg.epilogue) {
       console.log(`----- epilogue`);
     }
-  } else if (msg.body) {
-    console.log(msg.body.toString());
+  } else if (msg.decoded) {
+    console.log(msg.decoded);
   } else {
     if (ct && ct[0] && ct[0].parsed) {
       console.log(`----- ${ct[0].parsed?.type} -----`);
@@ -123,7 +123,7 @@ for (const filename of fs.readdirSync(dir)) {
         fs.writeSync(fd, data);
         fs.closeSync(fd);
 
-        // log_msg(msg);
+        log_msg(msg);
       } else {
         if (ct && ct[0].parsed?.type) {
           console.log(`===== ${ct[0].parsed?.type} =====`);
@@ -133,9 +133,12 @@ for (const filename of fs.readdirSync(dir)) {
 
       count_messages += 1;
     }
-  } catch (ex) {
+  } catch (e) {
+    const ex = e as NodeJS.ErrnoException;
     console.error(`###### file: ${filepath}`);
-    console.error(ex);
+    console.error(`${ex.message}`);
+    console.error(`${ex.code}`);
+    console.error(`${ex.stack}`);
   }
 }
 
