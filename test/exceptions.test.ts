@@ -197,4 +197,113 @@ describe("Parse failures", () => {
 
     fail('expecting "invalid character in multipart boundary…" excpetion');
   });
+
+  it("multipart, boundary ends with a space", () => {
+    const msg_text = Buffer.from(
+      dedent`
+        From: Nathaniel Borenstein <nsb@bellcore.com>
+        Date: Sun, 21 Mar 1993 23:56:48 -0800 (PST)
+        Bcc:
+        MIME-Version: 1.0
+        Content-type: multipart/mixed; boundary="bad boundary "
+
+        Text body.
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
+
+    try {
+      const msg = new Message(msg_text);
+      msg.decode();
+    } catch (e) {
+      const ex = e as Error;
+      expect(ex.message).toEqual("multipart boundary must not end with a space");
+      return;
+    }
+
+    fail('expecting "multipart boundary must not end with a space" excpetion');
+  });
+
+  it("multipart, multiple close-delimiter lines", () => {
+    const msg_text = Buffer.from(
+      dedent`
+        From: Nathaniel Borenstein <nsb@bellcore.com>
+        To: Ned Freed <ned@innosoft.com>
+        Date: Sun, 21 Mar 1993 23:56:48 -0800 (PST)
+        Subject: Sample message
+        MIME-Version: 1.0
+        Content-type: multipart/mixed; boundary="simple boundary"
+
+        This is the preamble.  It is to be ignored, though it
+        is a handy place for composition agents to include an
+        explanatory note to non-MIME conformant readers.
+
+        --simple boundary
+
+        This is implicitly typed plain US-ASCII text.
+        It does NOT end with a linebreak.
+        --simple boundary--
+        Content-type: text/plain; charset=us-ascii
+
+        This is explicitly typed plain US-ASCII text.
+        It DOES end with a linebreak.
+
+        --simple boundary--
+
+        This is the epilogue.  It is also to be ignored.
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
+
+    try {
+      const msg = new Message(msg_text);
+      msg.decode();
+    } catch (e) {
+      const ex = e as Error;
+      expect(ex.message).toEqual("redundant copy of close-delimiter at offset 410");
+      return;
+    }
+
+    fail('expecting "redundant copy of close-delimiter at offset 410" excpetion');
+  });
+
+  it("multipart, close-delimiter before first dash-boundary", () => {
+    const msg_text = Buffer.from(
+      dedent`
+        From: Nathaniel Borenstein <nsb@bellcore.com>
+        To: Ned Freed <ned@innosoft.com>
+        Date: Sun, 21 Mar 1993 23:56:48 -0800 (PST)
+        Subject: Sample message
+        MIME-Version: 1.0
+        Content-type: multipart/mixed; boundary="simple boundary"
+
+        This is the preamble.  It is to be ignored, though it
+        is a handy place for composition agents to include an
+        explanatory note to non-MIME conformant readers.
+
+        --simple boundary--
+
+        This is implicitly typed plain US-ASCII text.
+        It does NOT end with a linebreak.
+        --simple boundary
+        Content-type: text/plain; charset=us-ascii
+
+        This is explicitly typed plain US-ASCII text.
+        It DOES end with a linebreak.
+
+        --simple boundary
+
+        This is the epilogue.  It is also to be ignored.
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
+
+    try {
+      const msg = new Message(msg_text);
+      msg.decode();
+    } catch (e) {
+      const ex = e as Error;
+      expect(ex.message).toEqual("close-delimiter found at offset 160 before any dash-boundary");
+      return;
+    }
+
+    fail('expecting "close-delimiter found at offset 160 before any dash-boundary" excpetion');
+  });
 });

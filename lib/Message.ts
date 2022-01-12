@@ -331,7 +331,7 @@ export class Message {
         }
       } else if (match.groups.end) {
         if (end_found) {
-          throw new Error(`second copy of close-delimiter at offset ${match.index}`);
+          throw new Error(`redundant copy of close-delimiter at offset ${match.index}`);
         }
         end_found = true;
         if (!boundary_found || last_offset === 0) {
