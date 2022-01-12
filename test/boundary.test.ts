@@ -80,6 +80,9 @@ describe("Rewrite multipart boundaries", () => {
 
     const raw_new_boundary = msg.get_data();
 
+    // Be sure the old boundary is no longer used.
+    expect(raw_new_boundary.toString()).not.toMatch(/simple boundary/);
+
     const msg_new_boundary = new Message(raw_new_boundary);
     msg_new_boundary.decode();
 
