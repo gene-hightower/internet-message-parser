@@ -1,4 +1,4 @@
-*.js
+lib/*.js
 *~
 dist
 lib/message-parser.ts
