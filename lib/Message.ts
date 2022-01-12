@@ -179,7 +179,7 @@ export class Message {
        */
       if (message_re.lastIndex !== next_match + match[0].length) {
         const unm_len = message_re.lastIndex - (next_match + match[0].length);
-        throw new Error(`unmatched at ${next_match}: "${this.data.slice(next_match, next_match + unm_len)}"`);
+        throw new Error(`unmatched at ${next_match}: "${this.data.slice(next_match, next_match + unm_len)}" lastIndex=${message_re.lastIndex} m.len=${match[0].length} match=${match}`);
       }
 
       if (match.groups.header) {
