@@ -20,8 +20,11 @@ describe("Rewrite multipart boundaries", () => {
       `;
     expect(part0[part0.length - 1]).toEqual(".");
 
+    const type = "text";
+    const subtype = "plain";
+    const charset = "US-ASCII";
     const part1 = dedent`
-        This is explicitly typed plain US-ASCII text.
+        This is explicitly typed ${subtype} ${charset} ${type}.
         It DOES end with a linebreak.
 
       `;
@@ -43,7 +46,7 @@ describe("Rewrite multipart boundaries", () => {
 
         ${part0}
         --${boundary}
-        Content-type: text/plain; charset=us-ascii
+        Content-type: ${type}/${subtype}; charset=${charset}
 
         ${part1}
         --${boundary}--
