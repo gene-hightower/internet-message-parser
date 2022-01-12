@@ -17,9 +17,14 @@ describe("Parse failures", () => {
     } catch (e) {
       const ex = e as Error;
       expect(ex.message).toEqual('syntax error in Date: header');
+      return;
     }
 
-    expect(false);
+    fail('expecting bad Date: syntax excpetion');
   });
+
+
+
+
 
 });
