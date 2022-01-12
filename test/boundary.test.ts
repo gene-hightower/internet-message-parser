@@ -78,13 +78,17 @@ describe("Rewrite multipart boundaries", () => {
     expect(msg.parts[1].hdr_idx["content-type"][0].parsed.type).toEqual("text");
     expect(msg.parts[1].hdr_idx["content-type"][0].parsed.subtype).toEqual("plain");
 
+    const bound_re = RegExp(boundary);
+
+    // Be sure we can find the boundary.
+    expect(msg_text.toString()).toMatch(bound_re);
+
     msg.change_boundary();
     msg.rewrite_headers();
 
     const raw_new_boundary = msg.get_data();
 
     // Be sure the old boundary is no longer used.
-    const bound_re = RegExp(boundary);
     expect(raw_new_boundary.toString()).not.toMatch(bound_re);
 
     const msg_new_boundary = new Message(raw_new_boundary);
