@@ -9,7 +9,7 @@ describe("RFC-822 full header examples", () => {
         Date:     26 Aug 76 14:29 EDT
         From:     Jones@Registry.Org
         Bcc:
-    `.replace("\n", "\r\n") + "\r\n"
+    `.replace(/\n/g, "\r\n") + "\r\n"
     ); // CRLF line endings
 
     const msg = new Message(msg_text);
@@ -24,7 +24,7 @@ describe("RFC-822 full header examples", () => {
         Date:     26 Aug 76 14:29 EDT (the ':' is required by RFC-822 syntax)
         From:     Jones@Registry.Org
         To:       Smith@Registry.Org
-    `.replace("\n", "\r\n") + "\r\n"
+    `.replace(/\n/g, "\r\n") + "\r\n"
     ); // CRLF line endings
 
     const msg = new Message(msg_text);
@@ -43,7 +43,7 @@ describe("RFC-822 full header examples", () => {
         To:       "Al Neuman"@Mad-Host,
                   Sam.Irving@Other-Host
         Message-ID:  <some.string@SHOST>
-    `.replace("\n", "\r\n") + "\r\n"
+    `.replace(/\n/g, "\r\n") + "\r\n"
     ); // CRLF line endings
 
     const msg = new Message(msg_text);
@@ -81,7 +81,7 @@ describe("RFC-822 full header examples", () => {
                     "Special-action", but its name might later be
                     preempted
         Message-ID: <4231.629.XYzi-What@Other-Host>
-    `.replace("\n", "\r\n") + "\r\n"
+    `.replace(/\n/g, "\r\n") + "\r\n"
     ); // CRLF line endings
 
     const msg = new Message(msg_text);
@@ -322,7 +322,6 @@ describe("RFC-5322 A.5. White Space, Comments, and Other Oddities", () => {
   });
 });
 
-
 describe("RFC-2045", () => {
   it("MIME-Version", () => {
     const msg_text = Buffer.from(
@@ -340,8 +339,8 @@ describe("RFC-2045", () => {
 
     expect(msg.hdr_idx["mime-version"][0].parsed);
     expect(msg.hdr_idx["content-type"][0].parsed);
-    expect(msg.hdr_idx["content-type"][0].parsed.type).toEqual('text');
-    expect(msg.hdr_idx["content-type"][0].parsed.subtype).toEqual('plain');
+    expect(msg.hdr_idx["content-type"][0].parsed.type).toEqual("text");
+    expect(msg.hdr_idx["content-type"][0].parsed.subtype).toEqual("plain");
   });
 });
 
@@ -384,31 +383,41 @@ describe("RFC-2046 5.1.1. Common Syntax", () => {
     expect(msg.hdr_idx["date"][0].parsed);
     expect(msg.hdr_idx["subject"][0].value).toEqual("Sample message");
 
-    expect(msg.hdr_idx["content-type"][0].parsed.type).toEqual('multipart');
-    expect(msg.hdr_idx["content-type"][0].parsed.subtype).toEqual('mixed');
+    expect(msg.hdr_idx["content-type"][0].parsed.type).toEqual("multipart");
+    expect(msg.hdr_idx["content-type"][0].parsed.subtype).toEqual("mixed");
 
-    expect(msg.preamble).toEqual(Buffer.from(
-      dedent`
+    expect(msg.preamble).toEqual(
+      Buffer.from(
+        dedent`
         This is the preamble.  It is to be ignored, though it
         is a handy place for composition agents to include an
         explanatory note to non-MIME conformant readers.
 
 
-      `.replace(/\n/g, "\r\n")));
+      `.replace(/\n/g, "\r\n")
+      )
+    );
 
     expect(msg.parts.length).toEqual(2);
-    expect(msg.parts[0].decoded).toEqual(`This is implicitly typed plain US-ASCII text.\r\nIt does NOT end with a linebreak.`);
-    expect(msg.parts[1].decoded).toEqual(`This is explicitly typed plain US-ASCII text.\r\nIt DOES end with a linebreak.\r\n`);
+    expect(msg.parts[0].decoded).toEqual(
+      `This is implicitly typed plain US-ASCII text.\r\nIt does NOT end with a linebreak.`
+    );
+    expect(msg.parts[1].decoded).toEqual(
+      `This is explicitly typed plain US-ASCII text.\r\nIt DOES end with a linebreak.\r\n`
+    );
 
-    expect(msg.epilogue).toEqual(Buffer.from(
-      dedent`
+    expect(msg.epilogue).toEqual(
+      Buffer.from(
+        dedent`
 
           This is the epilogue.  It is also to be ignored.
 
-      `.replace(/\n/g, "\r\n")));
+      `.replace(/\n/g, "\r\n")
+      )
+    );
 
-    expect(msg.parts[1].hdr_idx["content-type"][0].parsed.type).toEqual('text');
-    expect(msg.parts[1].hdr_idx["content-type"][0].parsed.subtype).toEqual('plain');
+    expect(msg.parts[1].hdr_idx["content-type"][0].parsed.type).toEqual("text");
+    expect(msg.parts[1].hdr_idx["content-type"][0].parsed.subtype).toEqual("plain");
   });
 });
 
@@ -466,12 +475,12 @@ describe("RFC-2046 5.2.3.7. Examples and Further Explanations", () => {
     expect(msg.hdr_idx["date"][0].parsed);
     expect(msg.hdr_idx["subject"][0].value).toEqual("whatever");
 
-    expect(msg.hdr_idx["content-type"][0].parsed.type).toEqual('multipart');
-    expect(msg.hdr_idx["content-type"][0].parsed.subtype).toEqual('alternative');
+    expect(msg.hdr_idx["content-type"][0].parsed.type).toEqual("multipart");
+    expect(msg.hdr_idx["content-type"][0].parsed.subtype).toEqual("alternative");
 
     expect(msg.parts.length).toEqual(3);
 
-    expect(msg.parts[1].hdr_idx["content-type"][0].parsed.type).toEqual('message');
-    expect(msg.parts[1].hdr_idx["content-type"][0].parsed.subtype).toEqual('external-body');
+    expect(msg.parts[1].hdr_idx["content-type"][0].parsed.type).toEqual("message");
+    expect(msg.parts[1].hdr_idx["content-type"][0].parsed.subtype).toEqual("external-body");
   });
 });
