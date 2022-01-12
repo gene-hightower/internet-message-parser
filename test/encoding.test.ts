@@ -5,7 +5,7 @@ import { Message, is_structured_header } from "../lib/Message";
 const zlib = require("zlib");
 
 describe("Content-Type: encodings", () => {
-  it("base64", () => {
+  it("application/tlsrpt+gzip in base64", () => {
     const msg_text = Buffer.from(
       dedent`
         Received: from mail-qt1-f200.google.com (mail-qt1-f200.google.com [209.85.160.200])
