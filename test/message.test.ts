@@ -394,7 +394,8 @@ describe("RFC-2046 5.1.1. Common Syntax", () => {
         explanatory note to non-MIME conformant readers.
 
       `.replace(/\n/g, "\r\n")
-      ));
+      )
+    );
 
     expect(msg.parts.length).toEqual(2);
     expect(msg.parts[0].decoded).toEqual(
