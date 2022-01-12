@@ -306,4 +306,65 @@ describe("Parse failures", () => {
 
     fail('expecting "close-delimiter found at offset 160 before any dash-boundary" excpetion');
   });
+
+  it("multipart, no dash-boundary", () => {
+    const msg_text = Buffer.from(
+      dedent`
+        From: Nathaniel Borenstein <nsb@bellcore.com>
+        To: Ned Freed <ned@innosoft.com>
+        Date: Sun, 21 Mar 1993 23:56:48 -0800 (PST)
+        Subject: Sample message
+        MIME-Version: 1.0
+        Content-type: multipart/mixed; boundary="simple boundary"
+
+        Message body with no boundary.
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
+
+    try {
+      const msg = new Message(msg_text);
+      msg.decode();
+    } catch (e) {
+      const ex = e as Error;
+      expect(ex.message).toEqual('no dash-boundary (simple boundary) found');
+      return;
+    }
+
+    fail('expecting "no dash-boundary (simple boundary) found" excpetion');
+  });
+
+  it("multipart, no close-delimiter", () => {
+    const msg_text = Buffer.from(
+      dedent`
+        From: Nathaniel Borenstein <nsb@bellcore.com>
+        To: Ned Freed <ned@innosoft.com>
+        Date: Sun, 21 Mar 1993 23:56:48 -0800 (PST)
+        Subject: Sample message
+        MIME-Version: 1.0
+        Content-type: multipart/mixed; boundary="simple boundary"
+
+        --simple boundary
+
+        This is implicitly typed plain US-ASCII text.
+        It does NOT end with a linebreak.
+        --simple boundary
+        Content-type: text/plain; charset=us-ascii
+
+        This is explicitly typed plain US-ASCII text.
+        It DOES end with a linebreak.
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
+
+    try {
+      const msg = new Message(msg_text);
+      msg.decode();
+    } catch (e) {
+      const ex = e as Error;
+      expect(ex.message).toEqual('no close-delimiter (simple boundary) found');
+      return;
+    }
+
+    fail('expecting "no close-delimiter (simple boundary) found" excpetion');
+  });
+
 });
