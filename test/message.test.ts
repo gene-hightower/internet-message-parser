@@ -353,7 +353,7 @@ describe("RFC-2046 5.1.1. Common Syntax", () => {
         Date: Sun, 21 Mar 1993 23:56:48 -0800 (PST)
         Subject: Sample message
         MIME-Version: 1.0
-        Content-type: multipart/mixed; boundary="simple boundary"
+        Content-type: multipart / mixed; boundary = (a very) "simple boundary"
 
         This is the preamble.  It is to be ignored, though it
         is a handy place for composition agents to include an
@@ -364,7 +364,7 @@ describe("RFC-2046 5.1.1. Common Syntax", () => {
         This is implicitly typed plain US-ASCII text.
         It does NOT end with a linebreak.
         --simple boundary
-        Content-type: text/plain; charset=us-ascii
+        Content-type: text / plain; charset = us-ascii
 
         This is explicitly typed plain US-ASCII text.
         It DOES end with a linebreak.
