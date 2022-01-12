@@ -121,7 +121,7 @@ export class Message {
   hdr_idx: FieldIdx;
 
   body: Buffer | null;
-  decoded: string | null;
+  decoded: Buffer | string | null;
 
   // MIME multipart deconstruction
   preamble: Buffer | null; // [preamble CRLF] <- buffer content excludes the CRLF
@@ -380,7 +380,7 @@ export class Message {
       for (const part of this.parts) {
         part.all_text_parts(f);
       }
-    } else if (this.decoded) {
+    } else if (typeof this.decoded === "string") {
       const ct = this.hdr_idx["content-type"];
       const subtype = ct && ct[0].parsed ? ct[0].parsed.subtype : "plain";
       this.decoded = f(this.decoded, subtype);
@@ -395,13 +395,6 @@ export class Message {
       return;
     }
     if (!this.body) return;
-
-    // prettier-ignore
-    const ct = this.hdr_idx["content-type"]
-             ? this.hdr_idx["content-type"][0].parsed
-             : parse(default_content_type);
-
-    if (ct.type !== "text") return;
 
     let body;
     const enc = this._get_transfer_encoding();
@@ -418,7 +411,7 @@ export class Message {
         break;
 
       case "base64":
-        body = this.body.toString("base64");
+        body = Buffer.from(this.body.toString(), "base64");
         break;
 
       default:
@@ -426,11 +419,19 @@ export class Message {
         break;
     }
 
+    const ctf = this.hdr_idx["content-type"];
+    const ct = ctf ? ctf[0].parsed : parse(default_content_type);
+
+    if (ct.type !== "text") {
+      this.decoded = body;
+      return;
+    }
+
     const charset = this._get_param("charset", ct.parameters, "utf-8").toLowerCase();
 
     const iconv = new Iconv(charset, "utf-8");
 
-    // decode body
+    // Convert body to “decoded” string.
     try {
       this.decoded = iconv.convert(body).toString();
     } catch (e) {
@@ -466,31 +467,37 @@ export class Message {
     const ctf = this.hdr_idx["content-type"];
     const ct = ctf ? ctf[0].parsed : parse(default_content_type);
 
-    if (ct.type !== "text") return;
-
-    const charset = this._get_param("charset", ct.parameters, "utf-8").toLowerCase();
-
-    const iconv = new Iconv("utf-8", charset);
-
     let body;
-    try {
-      body = iconv.convert(this.decoded);
-    } catch (e) {
-      const ex = e as NodeJS.ErrnoException;
-      if (ex.code === "EILSEQ") {
-        // Now we fall-back to Unicode, which should always work.
-        if (!ctf) throw ex; // we should never get a conversion error unless the ctf is set
-        const new_ctv = `text/${ctf[0].parsed.subtype}; charset=utf-8`;
-        const new_full = `Content-Type: ${new_ctv}\r\n`;
-        ctf[0] = {
-          name: "Content-Type",
-          value: new_ctv,
-          full_header: new_full,
-          parsed: parse(new_full),
-        };
-        body = Buffer.from(this.decoded);
+    if (ct.type === "text") {
+      const charset = this._get_param("charset", ct.parameters, "utf-8").toLowerCase();
+
+      const iconv = new Iconv("utf-8", charset);
+
+      try {
+        body = iconv.convert(this.decoded);
+      } catch (e) {
+        const ex = e as NodeJS.ErrnoException;
+        if (ex.code === "EILSEQ") {
+          // Now we fall-back to Unicode, which should always work.
+          if (!ctf) throw ex; // we should never get a conversion error unless the ctf is set
+          const new_ctv = `text/${ctf[0].parsed.subtype}; charset=utf-8`;
+          const new_full = `Content-Type: ${new_ctv}\r\n`;
+          ctf[0] = {
+            name: "Content-Type",
+            value: new_ctv,
+            full_header: new_full,
+            parsed: parse(new_full),
+          };
+          body = Buffer.from(this.decoded);
+        } else {
+          throw ex; // no idea what other type of exception this could be
+        }
+      }
+    } else {
+      if (Buffer.isBuffer(this.decoded)) {
+        body = this.decoded;
       } else {
-        throw ex; // no idea what other type of exception this could be
+        throw new Error(`non-text decoded part (${ct.type / ct.subtype}) should be a Buffer`);
       }
     }
 
