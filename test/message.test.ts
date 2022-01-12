@@ -1,6 +1,6 @@
 import dedent from "ts-dedent";
 
-import { Message, is_structured_header } from "../lib/Message";
+import { Message } from "../lib/Message";
 
 describe("RFC-822 full header examples", () => {
   it("A.3.1. Minimum required", () => {

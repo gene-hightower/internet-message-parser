@@ -1,6 +1,6 @@
 import dedent from "ts-dedent";
 
-import { Message, is_structured_header } from "../lib/Message";
+import { Message } from "../lib/Message";
 
 const Iconv = require("iconv").Iconv;
 const zlib = require("zlib");
