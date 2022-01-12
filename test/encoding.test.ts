@@ -6,6 +6,63 @@ const Iconv = require("iconv").Iconv;
 const zlib = require("zlib");
 
 describe("Content-Type: encodings", () => {
+  it("text/plain; charset=iso-2022-jp, base64", () => {
+    const msg_text = Buffer.from(
+      dedent`
+        Content-Type: text/plain; charset=iso-2022-jp
+        Content-Transfer-Encoding: base64
+
+        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
+        P2lkPTQK
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
+    const msg = new Message(msg_text, false);
+    msg.decode();
+
+    expect(msg.hdr_idx["content-type"][0].parsed.type).toEqual("text");
+    expect(msg.hdr_idx["content-type"][0].parsed.subtype).toEqual("plain");
+
+    // Look for URL in all that text.
+    expect(msg.decoded).toMatch(/http:\/\/www\.1s1yiwu323\.net/);
+  });
+
+
   it("text/plain; charset=ISO-8859-1, 8bit", () => {
     const msg_text = Buffer.from(
       dedent`
