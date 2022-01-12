@@ -30,7 +30,7 @@ describe("Rewrite multipart boundaries", () => {
       `;
     expect(part1[part1.length - 1]).toEqual("\n");
 
-    const boundary = "simple boundary";
+    const boundary = "simple boundary"; // no regexp special chars in this
     const subject = "Sample message";
     const msg_text = Buffer.from(
       dedent`
@@ -84,7 +84,8 @@ describe("Rewrite multipart boundaries", () => {
     const raw_new_boundary = msg.get_data();
 
     // Be sure the old boundary is no longer used.
-    expect(raw_new_boundary.toString()).not.toMatch(/simple boundary/);
+    const bound_re = RegExp(boundary);
+    expect(raw_new_boundary.toString()).not.toMatch(bound_re);
 
     const msg_new_boundary = new Message(raw_new_boundary);
     msg_new_boundary.decode();
