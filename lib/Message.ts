@@ -320,11 +320,8 @@ export class Message {
         boundary_found = true;
       } else if (match.groups.encap) {
         if (!boundary_found) {
-          // Strip off the CRLF before the “dash-boundary.”
           let idx = match.index;
-          if (this.body[idx] === 13) ++idx; // skip (optional) '\r'
-          ++idx; // skip '\n'
-          this.preamble = this.body.slice(0, idx);
+          this.preamble = this.body.slice(0, match.index);
           boundary_found = true;
         } else {
           this.parts.push(new Message(this.body.slice(last_offset, match.index), false));
@@ -346,7 +343,7 @@ export class Message {
       // The epilogue excludes the CRLF found after the “close-delimiter.”
       let idx = last_offset;
       if (this.body[idx] === 13) ++idx; // skip (optional) '\r'
-      ++idx; // skip '\n'
+      if (this.body[idx] === 10) ++idx; // skip '\n'
       this.epilogue = this.body.slice(idx);
     }
     if (!boundary_found) {

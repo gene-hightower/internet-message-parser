@@ -372,7 +372,7 @@ describe("RFC-2046 5.1.1. Common Syntax", () => {
         --simple boundary--
 
         This is the epilogue.  It is also to be ignored.
-    `.replace(/\n/g, "\r\n") + "\r\n"
+    `.replace(/\n/g, "\r\n")
     ); // CRLF line endings
 
     const msg = new Message(msg_text);
@@ -393,10 +393,8 @@ describe("RFC-2046 5.1.1. Common Syntax", () => {
         is a handy place for composition agents to include an
         explanatory note to non-MIME conformant readers.
 
-
       `.replace(/\n/g, "\r\n")
-      )
-    );
+      ));
 
     expect(msg.parts.length).toEqual(2);
     expect(msg.parts[0].decoded).toEqual(
@@ -411,7 +409,6 @@ describe("RFC-2046 5.1.1. Common Syntax", () => {
         dedent`
 
           This is the epilogue.  It is also to be ignored.
-
       `.replace(/\n/g, "\r\n")
       )
     );
