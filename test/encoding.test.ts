@@ -62,7 +62,6 @@ describe("Content-Type: encodings", () => {
     expect(msg.decoded).toMatch(/http:\/\/www\.1s1yiwu323\.net/);
   });
 
-
   it("text/plain; charset=ISO-8859-1, 8bit", () => {
     const msg_text = Buffer.from(
       dedent`
