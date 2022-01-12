@@ -2,9 +2,74 @@ import dedent from "ts-dedent";
 
 import { Message, is_structured_header } from "../lib/Message";
 
+const Iconv = require("iconv").Iconv;
 const zlib = require("zlib");
 
 describe("Content-Type: encodings", () => {
+  it("text/plain; charset=ISO-8859-1, 8bit", () => {
+    const msg_text = Buffer.from(
+      dedent`
+        Message-ID: <whatever@example.com>
+        Date: Mon, 10 Jan 2022 01:59:08 -0800
+        From: foo@example.com
+        To: bar@example.net
+        Subject: some text
+        Mime-Version: 1.0
+        Content-Type: text/plain; charset=ISO-8859-1
+        Content-Language: it
+        Content-Transfer-Encoding: 8bit
+
+        Wikipedia è un'enciclopedia online, libera e collaborativa.
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
+    const iconv = new Iconv("utf-8", "ISO-8859-1");
+    const iso8859 = iconv.convert(msg_text);
+    const msg = new Message(iso8859);
+    msg.decode();
+
+    expect(msg.hdr_idx["message-id"][0].parsed);
+    expect(msg.hdr_idx["date"][0].parsed);
+    expect(msg.hdr_idx["from"][0].parsed);
+    expect(msg.hdr_idx["to"][0].parsed);
+    expect(msg.hdr_idx["subject"][0]);
+    expect(msg.hdr_idx["mime-version"][0].parsed);
+    expect(msg.hdr_idx["content-type"][0].parsed.type).toEqual("text");
+    expect(msg.hdr_idx["content-type"][0].parsed.subtype).toEqual("plain");
+
+    expect(msg.decoded).toEqual(`Wikipedia è un'enciclopedia online, libera e collaborativa.\r\n`);
+  });
+
+  it("text/plain; charset=ISO-8859-1, quoted-printable", () => {
+    const msg_text = Buffer.from(
+      dedent`
+        Message-ID: <whatever@example.com>
+        Date: Mon, 10 Jan 2022 01:59:08 -0800
+        From: foo@example.com
+        To: bar@example.net
+        Subject: some text
+        Mime-Version: 1.0
+        Content-Type: text/plain; charset=ISO-8859-1
+        Content-Language: it
+        Content-Transfer-Encoding: quoted-printable
+
+        Wikipedia =E8 un'enciclopedia online, libera e collaborativa.
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
+    const msg = new Message(msg_text);
+    msg.decode();
+
+    expect(msg.hdr_idx["message-id"][0].parsed);
+    expect(msg.hdr_idx["date"][0].parsed);
+    expect(msg.hdr_idx["from"][0].parsed);
+    expect(msg.hdr_idx["to"][0].parsed);
+    expect(msg.hdr_idx["subject"][0]);
+    expect(msg.hdr_idx["mime-version"][0].parsed);
+    expect(msg.hdr_idx["content-type"][0].parsed.type).toEqual("text");
+    expect(msg.hdr_idx["content-type"][0].parsed.subtype).toEqual("plain");
+
+    expect(msg.decoded).toEqual(`Wikipedia è un'enciclopedia online, libera e collaborativa.\r\n`);
+  });
+
   it("application/tlsrpt+gzip in base64", () => {
     const msg_text = Buffer.from(
       dedent`
