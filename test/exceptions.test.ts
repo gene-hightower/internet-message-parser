@@ -326,7 +326,7 @@ describe("Parse failures", () => {
       msg.decode();
     } catch (e) {
       const ex = e as Error;
-      expect(ex.message).toEqual('no dash-boundary (simple boundary) found');
+      expect(ex.message).toEqual("no dash-boundary (simple boundary) found");
       return;
     }
 
@@ -360,11 +360,37 @@ describe("Parse failures", () => {
       msg.decode();
     } catch (e) {
       const ex = e as Error;
-      expect(ex.message).toEqual('no close-delimiter (simple boundary) found');
+      expect(ex.message).toEqual("no close-delimiter (simple boundary) found");
       return;
     }
 
     fail('expecting "no close-delimiter (simple boundary) found" excpetion');
   });
 
+  it("unknown Content-Transfer-Encoding:", () => {
+    const msg_text = Buffer.from(
+      dedent`
+        Message-ID: <whatever@example.com>
+        Date: Mon, 10 Jan 2022 01:59:08 -0800
+        From: foo@example.com
+        To: bar@example.net
+        Subject: some text
+        Mime-Version: 1.0
+        Content-Type: text/plain; charset="UTF-8"
+        Content-Transfer-Encoding: unknown
+
+        Message body.
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
+    try {
+      const msg = new Message(msg_text);
+      msg.decode();
+    } catch (e) {
+      const ex = e as Error;
+      expect(ex.message).toEqual("syntax error in Content-Transfer-Encoding: header");
+      return;
+    }
+
+    fail('expecting "syntax error in Content-Transfer-Encoding: header" excpetion');
+  });
 });
