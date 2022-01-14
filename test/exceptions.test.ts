@@ -326,11 +326,39 @@ describe("Parse failures", () => {
       msg.decode();
     } catch (e) {
       const ex = e as Error;
-      expect(ex.message).toEqual("no dash-boundary (simple boundary) found");
+      expect(ex.message).toEqual("no dash-boundary (--simple boundary) found");
       return;
     }
 
-    fail('expecting "no dash-boundary (simple boundary) found" excpetion');
+    fail('expecting "no dash-boundary (--simple boundary) found" excpetion');
+  });
+
+  it("multipart, malformed subpart", () => {
+    const msg_text = Buffer.from(
+      dedent`
+        From: Nathaniel Borenstein <nsb@bellcore.com>
+        To: Ned Freed <ned@innosoft.com>
+        Date: Sun, 21 Mar 1993 23:56:48 -0800 (PST)
+        Subject: Sample message
+        MIME-Version: 1.0
+        Content-type: multipart/mixed; boundary="simple boundary"
+
+        --simple boundary
+        garbage
+        --simple boundary--
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
+
+    try {
+      const msg = new Message(msg_text);
+      msg.decode();
+    } catch (e) {
+      const ex = e as Error;
+      expect(ex.message).toEqual('submessage end part #0, off 19 failed: unknown string at 0: "garbage"');
+      return;
+    }
+
+    fail('expecting "submessage end part #0, off 19 failed…" excpetion');
   });
 
   it("multipart, no close-delimiter", () => {
@@ -360,11 +388,11 @@ describe("Parse failures", () => {
       msg.decode();
     } catch (e) {
       const ex = e as Error;
-      expect(ex.message).toEqual("no close-delimiter (simple boundary) found");
+      expect(ex.message).toEqual("no close-delimiter (--simple boundary--) found");
       return;
     }
 
-    fail('expecting "no close-delimiter (simple boundary) found" excpetion');
+    fail('expecting "no close-delimiter (--simple boundary--) found" excpetion');
   });
 
   it("unknown Content-Transfer-Encoding:", () => {

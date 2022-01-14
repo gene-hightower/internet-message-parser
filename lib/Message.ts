@@ -317,27 +317,23 @@ export class Message {
     let match;
     while ((match = multi_re.exec(this.body))) {
       if (match.groups.start) {
-        console.log(`%%%%%% start`);
         boundary_found = true;
       }
       if (match.groups.encap) {
-        console.log(`%%%%%% encap`);
         if (!boundary_found) {
           let idx = match.index;
           this.preamble = this.body.slice(0, match.index);
           boundary_found = true;
         } else {
-          console.log(`%%%%%% encap Message(${this.body.slice(last_offset, match.index).toString})`);
           try {
             this.parts.push(new Message(this.body.slice(last_offset, match.index), false));
           } catch (e) {
-            console.log(`%%%%%% encap Message failed`);
-            throw e;
+            const ex = e as NodeJS.ErrnoException;
+            throw new Error(`submessage encap part #${this.parts.length}, off ${last_offset} failed: ${ex.message}`);
           }
         }
       }
       if (match.groups.end) {
-        console.log(`%%%%%% end`);
         if (end_found) {
           throw new Error(`redundant copy of close-delimiter at offset ${match.index}`);
         }
@@ -345,12 +341,11 @@ export class Message {
         if (!boundary_found || last_offset === 0) {
           throw new Error(`close-delimiter found at offset ${match.index} before any dash-boundary`);
         }
-        console.log(`%%%%%% end Message(${this.body.slice(last_offset, match.index).toString})`);
         try {
           this.parts.push(new Message(this.body.slice(last_offset, match.index), false));
         } catch (e) {
-          console.log(`%%%%%% end Message failed`);
-          throw e;
+          const ex = e as NodeJS.ErrnoException;
+          throw new Error(`submessage end part #${this.parts.length}, off ${last_offset} failed: ${ex.message}`);
         }
       }
       last_offset = multi_re.lastIndex;
@@ -364,10 +359,10 @@ export class Message {
       this.epilogue = this.body.slice(idx);
     }
     if (!boundary_found) {
-      throw new Error(`no dash-boundary (${boundary}) found`);
+      throw new Error(`no dash-boundary (--${boundary}) found`);
     }
     if (!end_found) {
-      throw new Error(`no close-delimiter (${boundary}) found`);
+      throw new Error(`no close-delimiter (--${boundary}--) found`);
     }
   }
 

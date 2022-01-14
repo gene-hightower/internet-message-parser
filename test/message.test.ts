@@ -3,6 +3,39 @@ import dedent from "ts-dedent";
 import { Message } from "../lib/Message";
 
 describe("RFC-822 full header examples", () => {
+  it("The DDG test", () => {
+    const msg_text = Buffer.from(dedent`Subject: Sample message
+                                        MIME-Version: 1.0
+                                        Content-type: multipart/mixed; boundary="simple boundary"
+                                        To: Some Random User <random@mailhog.duck>
+                                        Received: by haraka.duck; Fri, 14 Jan 2022 18:38:59 +0000
+                                        Message-ID: <7B2A3F04-9FEB-4947-8E99-6563ADB1CA93.1@haraka.duck>
+                                        Date: Fri, 14 Jan 2022 18:38:59 +0000
+                                        From: duckuser@haraka.duck
+
+                                        --simple boundary
+                                        Content-type: text / plain; charset = us-ascii
+
+                                        This is explicitly typed plain US-ASCII text.
+                                        It DOES end with a linebreak.
+
+                                        --simple boundary--
+                                        `.replace(/\n/g, "\r\n")
+    ); // CRLF line endings
+
+    const msg = new Message(msg_text);
+    msg.decode();
+    msg.change_boundary();
+    msg.rewrite_headers();
+    msg.encode();
+
+    const msg2 = new Message(msg.get_data());
+    msg.decode();
+
+    expect(msg2.hdr_idx["date"][0].parsed);
+    expect(msg2.hdr_idx["from"][0].parsed);
+  });
+
   it("A.3.1. Minimum required", () => {
     const msg_text = Buffer.from(
       dedent`
