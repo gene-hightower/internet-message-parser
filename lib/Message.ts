@@ -3,6 +3,8 @@ const fs = require("fs");
 const libqp = require("libqp");
 const Iconv = require("iconv").Iconv;
 
+import dedent from "ts-dedent";
+
 import { SyntaxError, parse, structuredHeaders } from "./message-parser";
 import { MIMEVersion, ContentTransferEncoding, ContentType, Parameter, Encoding } from "./message-types";
 
@@ -177,9 +179,13 @@ export class Message {
       /* Check to see we haven't skipped over any bytes that did not
        * match either a header, or a body, or other.
        */
-      if (message_re.lastIndex !== next_match + match[0].length) {
+      if (message_re.lastIndex && message_re.lastIndex !== next_match + match[0].length) {
         const unm_len = message_re.lastIndex - (next_match + match[0].length);
-        throw new Error(`unmatched at ${next_match}: "${this.data.slice(next_match, next_match + unm_len)}" lastIndex=${message_re.lastIndex} m.len=${match[0].length} match=${match}`);
+        const s = this.data.slice(next_match, next_match + unm_len);
+        throw new Error(dedent`unmatched at ${next_match}: «${s}»
+                               lastIndex=${message_re.lastIndex}
+                               m.len=${match[0].length}
+                               match[0]=«${match[0]}»`);
       }
 
       if (match.groups.header) {
