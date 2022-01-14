@@ -205,8 +205,7 @@ export class Message {
         // next_match += match.groups.body.length;
       } else {
         // We should never get a match without matching one of the groups: header, body, or other.
-        const unm_len = message_re.lastIndex - (next_match + match[0].length);
-        throw new Error(`unknown match at ${next_match}: "${this.data.slice(next_match, next_match + unm_len)}"`);
+        throw new Error(`unknown match at ${next_match}: «${match[0]}»`);
       }
     }
   }
@@ -327,7 +326,6 @@ export class Message {
       }
       if (match.groups.encap) {
         if (!boundary_found) {
-          let idx = match.index;
           this.preamble = this.body.slice(0, match.index);
           boundary_found = true;
         } else {
@@ -354,7 +352,11 @@ export class Message {
           throw new Error(`submessage end part #${this.parts.length}, off ${last_offset} failed: ${ex.message}`);
         }
       }
-      last_offset = multi_re.lastIndex;
+      if (multi_re.lastIndex) {
+        last_offset = multi_re.lastIndex;
+      } else {
+        last_offset = match[0].index + match[0].length;
+      }
     }
 
     if (last_offset != this.body.length) {
