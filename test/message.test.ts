@@ -14,7 +14,7 @@ describe("RFC-822 full header examples", () => {
                                         From: duckuser@haraka.duck
 
                                         --simple boundary
-                                        Content-type: text / plain; charset = us-ascii
+                                        Content-type: text / plain; charset = (not Unicode) us-ascii
 
                                         This is explicitly typed plain US-ASCII text.
                                         It DOES end with a linebreak.
