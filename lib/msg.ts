@@ -2,7 +2,6 @@ const fs = require("fs");
 const path = require("path");
 
 import { Message, is_structured_header } from "./Message";
-import { ContentTransferEncoding, ContentType, Parameter, Encoding } from "./message-types";
 
 //const dir = '/home/gene/Maildir/.FB/cur';
 //const dir = '/home/gene/Maildir/.Junk/cur';
