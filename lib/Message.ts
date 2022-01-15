@@ -355,7 +355,7 @@ export class Message {
       if (multi_re.lastIndex) {
         last_offset = multi_re.lastIndex;
       } else {
-        last_offset = match[0].index + match[0].length;
+        last_offset = match.index + match[0].length;
       }
     }
 
