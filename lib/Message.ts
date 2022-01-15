@@ -12,9 +12,6 @@ import { MIMEVersion, ContentTransferEncoding, ContentType, Parameter, Encoding 
 // by Unicode code-points.
 const RE2 = require("re2-latin1");
 
-const default_ct_value = `text/plain; charset=utf-8`;
-const default_content_type = `Content-Type: ${default_ct_value}\r\n`;
-
 // Required to be present in full messages, but not MIME parts.
 const required = [
   // "Date",                    // Often missing on legit messages.
@@ -113,12 +110,31 @@ export interface Field {
   parsed: any | null;
 }
 
+function new_field(n: string, v: string): Field {
+  const full = `${n}: ${v}\r\n`;
+  return {
+    name: n,
+    value: v,
+    full_header: full,
+    parsed: parse(full),
+  };
+}
+
 export interface FieldIdx {
   [name: string]: Field[];
 }
 
+export enum MessageType {
+  full, // Top level RFC-{8,28,53}22 Internet Message
+  message_digest, // <https://www.rfc-editor.org/rfc/rfc2046#section-5.1.5>
+  message_rfc822, // <https://www.rfc-editor.org/rfc/rfc2046#section-5.2.1>
+  part, // some other part of a multipart/mixed, or
+  //  message/partial or message/external-body
+}
+
 export class Message {
   data: Buffer;
+  type: MessageType;
   headers: Field[];
   hdr_idx: FieldIdx;
 
@@ -130,12 +146,12 @@ export class Message {
   parts: Message[];
   epilogue: Buffer | null; // [CRLF epilogue] <- buffer content excludes the CRLF
 
-  constructor(data: Buffer, full_message?: boolean) {
+  constructor(data: Buffer, type?: MessageType) {
     if (!Buffer.isBuffer(data)) {
       throw new TypeError(`Message ctor must take a Buffer, not ${typeof data}`);
     }
-    if (full_message === undefined) full_message = true;
     this.data = data;
+    this.type = type === undefined ? MessageType.full : type;
     this.headers = [];
     this.hdr_idx = {};
 
@@ -149,7 +165,7 @@ export class Message {
     this._coarse_chop();
     this._index_headers();
     this._parse_structured_headers();
-    this._sanity_check_headers(full_message);
+    this._sanity_check_headers();
     this._find_parts();
   }
 
@@ -217,6 +233,20 @@ export class Message {
     }
   }
 
+  _set_field(n: string, v: string) {
+    const nf = new_field(n, v);
+    const key = n.toLowerCase();
+    const existing_field = this.hdr_idx[key];
+    if (existing_field) {
+      this.headers = this.headers.filter((f) => f.name.toLowerCase() != key);
+      this.headers.push(nf);
+      this.hdr_idx[key] = [nf];
+    } else {
+      this.headers.push(nf);
+      this.hdr_idx[key] = [nf];
+    }
+  }
+
   _parse_structured_headers() {
     for (const hdr of this.headers) {
       if (is_structured_header(hdr.name)) {
@@ -231,31 +261,52 @@ export class Message {
     }
   }
 
-  _sanity_check_headers(full_message: boolean) {
-    if (full_message) {
+  _sanity_check_headers() {
+    if (this.type === MessageType.full) {
       // Required fields for full messages only.
       for (const fld of required) {
         const key = fld.toLowerCase();
         if (!this.hdr_idx[key]) throw new Error(`missing ${fld}: header`);
       }
     }
+
     for (const fld of unique) {
       const key = fld.toLowerCase();
-      if (this.hdr_idx[key]?.length > 1) throw new Error(`too many ${fld}: headers`);
+      const vals = this.hdr_idx[key];
+      if (vals && vals.length > 1) throw new Error(`too many ${fld}: headers`);
     }
     for (const fld of correct) {
-      const p = this.hdr_idx[fld.toLowerCase()];
-      if (p && !p.every((f) => f.parsed)) throw new Error(`syntax error in ${fld}: header`);
+      const key = fld.toLowerCase();
+      const vals = this.hdr_idx[key];
+      if (vals) {
+        let n = 1;
+        for (const val of vals) {
+          if (!val.parsed) throw new Error(`syntax error in ${fld}: header #${n} (${val.full_header.trim()})`);
+          ++n;
+        }
+      }
     }
-    if (full_message) {
+
+    if (this.type === MessageType.full) {
       // Check for at least one of To:, Cc:, or Bcc.
       if (!(this.hdr_idx["to"] || this.hdr_idx["cc"] || this.hdr_idx["bcc"]))
-        throw new Error(`must have a recipient, one of To:, Cc:, or Bcc:`);
+        throw new Error(`must have a recipient; at least one of To:, Cc:, or Bcc:`);
 
       // Check for Sender: if From: has more than one address.
       if (this.hdr_idx["from"][0].parsed[1].length && !this.hdr_idx["sender"])
         throw new Error(`must have Sender: if more than one address in From:`);
     }
+
+    // <https://www.rfc-editor.org/rfc/rfc2046#section-5.2.1>
+    /*
+    if (this.type === MessageType.message_rfc822) {
+      // Check for at least one of From:, Subject:, or Date:
+      if (!(this.hdr_idx["from"] || this.hdr_idx["subject"] || this.hdr_idx["date"]))
+        throw new Error(`at least one of "From", "Subject", or "Date" must be present`);
+    }
+
+    for (const part of this.parts) part._sanity_check_headers();
+    */
   }
 
   _get_param(name: string, parameters: Parameter[], default_value?: string) {
@@ -273,9 +324,27 @@ export class Message {
     return uniq[0];
   }
 
-  _get_boundary() {
+  _get_content_type_with_default() {
     const ct = this.hdr_idx["content-type"];
-    if (!(ct && ct[0] && ct[0].parsed.type === "multipart")) return null;
+    if (ct && ct[0].parsed) return ct[0].parsed;
+
+    switch (this.type) {
+      case MessageType.full:
+      case MessageType.message_rfc822:
+      case MessageType.part:
+        return parse("Content-Type: text/plain; charset=utf-8\r\n");
+
+      case MessageType.message_digest:
+        return parse("Content-Type: message/rfc822\r\n");
+
+      default:
+        throw new Error(`unknown message type (${this.type})`);
+    }
+  }
+
+  _get_boundary() {
+    const ct = this._get_content_type_with_default();
+    if (ct.type !== "multipart") return null;
 
     /*
       In my mailbox I find:
@@ -292,7 +361,7 @@ export class Message {
       throw new Error('only 7bit, 8bit, or binary Content-Transfer-Encoding allowed for multipart messages');
     */
 
-    const boundary = this._get_param("boundary", ct[0].parsed.parameters);
+    const boundary = this._get_param("boundary", ct.parameters);
 
     if (!/^[ 0-9A-Za-z'\(\)+_,\-\./:=\?]+$/.test(boundary))
       throw new Error(`invalid character in multipart boundary (${boundary})`);
@@ -308,8 +377,24 @@ export class Message {
       // no body, no parts
       return;
 
+    const ct = this._get_content_type_with_default();
+    if (ct.type !== "multipart") return;
+
+    const default_part_type = (() => {
+      switch (ct.subtype.toLowerCase()) {
+        case "digest":
+          return MessageType.message_rfc822;
+
+        case "alternative":
+        case "related":
+        case "mixed":
+        default:
+          return MessageType.part;
+      }
+    })();
+
     const boundary = this._get_boundary();
-    if (!boundary) return;
+    if (boundary === null) return;
 
     let boundary_found = false;
     let end_found = false;
@@ -330,7 +415,7 @@ export class Message {
           boundary_found = true;
         } else {
           try {
-            this.parts.push(new Message(this.body.slice(last_offset, match.index), false));
+            this.parts.push(new Message(this.body.slice(last_offset, match.index), default_part_type));
           } catch (e) {
             const ex = e as NodeJS.ErrnoException;
             throw new Error(`submessage encap part #${this.parts.length}, off ${last_offset} failed: ${ex.message}`);
@@ -346,7 +431,7 @@ export class Message {
           throw new Error(`close-delimiter found at offset ${match.index} before any dash-boundary`);
         }
         try {
-          this.parts.push(new Message(this.body.slice(last_offset, match.index), false));
+          this.parts.push(new Message(this.body.slice(last_offset, match.index), default_part_type));
         } catch (e) {
           const ex = e as NodeJS.ErrnoException;
           throw new Error(`submessage end part #${this.parts.length}, off ${last_offset} failed: ${ex.message}`);
@@ -398,9 +483,10 @@ export class Message {
         part.all_text_parts(f);
       }
     } else if (typeof this.decoded === "string") {
-      const ct = this.hdr_idx["content-type"];
-      const subtype = ct && ct[0].parsed ? ct[0].parsed.subtype : "plain";
-      this.decoded = f(this.decoded, subtype);
+      const ct = this._get_content_type_with_default();
+      if (ct.type === "text")
+        // should be true if decoded is a string
+        this.decoded = f(this.decoded, ct.subtype);
     }
   }
 
@@ -436,8 +522,7 @@ export class Message {
         break;
     }
 
-    const ctf = this.hdr_idx["content-type"];
-    const ct = ctf ? ctf[0].parsed : parse(default_content_type);
+    const ct = this._get_content_type_with_default();
 
     if (ct.type !== "text") {
       this.decoded = body;
@@ -481,8 +566,7 @@ export class Message {
     }
     if (!this.decoded) return;
 
-    const ctf = this.hdr_idx["content-type"];
-    const ct = ctf ? ctf[0].parsed : parse(default_content_type);
+    const ct = this._get_content_type_with_default();
 
     let body;
     if (ct.type === "text") {
@@ -496,15 +580,12 @@ export class Message {
         const ex = e as NodeJS.ErrnoException;
         if (ex.code === "EILSEQ") {
           // Now we fall-back to Unicode, which should always work.
-          if (!ctf) throw ex; // we should never get a conversion error unless the ctf is set
-          const new_ctv = `text/${ctf[0].parsed.subtype}; charset=utf-8`;
-          const new_full = `Content-Type: ${new_ctv}\r\n`;
-          ctf[0] = {
-            name: "Content-Type",
-            value: new_ctv,
-            full_header: new_full,
-            parsed: parse(new_full),
-          };
+          const cty = this.hdr_idx["content-type"];
+          if (!cty) throw ex; // we should never get a conversion error unless the cty is set
+
+          this._set_field("Content-Type", `text/${cty[0].parsed.subtype}; charset=utf-8`);
+          this._set_field("Content-Transfer-Encoding", "quoted-printable");
+
           body = Buffer.from(this.decoded);
         } else {
           throw ex; // no idea what other type of exception this could be
@@ -541,9 +622,10 @@ export class Message {
   }
 
   change_boundary() {
-    const ct = this.hdr_idx["content-type"];
-    if (!(ct && ct[0] && ct[0].parsed.type === "multipart")) return;
-    for (const param of ct[0].parsed.parameters) if (param.boundary) param.boundary = `"=_${hash(param.boundary)}_="`;
+    const ct = this._get_content_type_with_default();
+    if (ct.type !== "multipart") return;
+    for (const param of ct.parameters) if (param.boundary) param.boundary = `"=_${hash(param.boundary)}_="`;
+    for (const part of this.parts) part.change_boundary();
   }
 
   get_data() {

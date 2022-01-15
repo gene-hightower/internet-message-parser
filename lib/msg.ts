@@ -1,12 +1,13 @@
 const fs = require("fs");
 const path = require("path");
 
-import { Message, is_structured_header } from "./Message";
+import { Message, MessageType, is_structured_header } from "./Message";
 
 //const dir = '/home/gene/Maildir/.FB/cur';
 //const dir = '/home/gene/Maildir/.Junk/cur';
-const dir = "/home/gene/Maildir/cur";
+//const dir = "/home/gene/Maildir/cur";
 //const dir = '/tmp/Maildir/cur';
+const dir = "/a/src/mailparser/test/fixtures/";
 
 var count_messages = 0;
 var count_multipart = 0;
@@ -53,7 +54,7 @@ function log_msg(msg: Message) {
   }
 }
 
-var msg = new Message(Buffer.from(""), false);
+var msg = new Message(Buffer.from(""), MessageType.part);
 
 for (const filename of fs.readdirSync(dir)) {
   const filepath = path.resolve(dir, filename);
@@ -66,7 +67,7 @@ for (const filename of fs.readdirSync(dir)) {
       const data = fs.readFileSync(filepath);
 
       try {
-        msg = new Message(data, true);
+        msg = new Message(data);
       } catch (ex) {
         console.error(`###### file: ${filepath}`);
         console.error(`###### Message() failed: ${ex}`);
@@ -128,7 +129,6 @@ for (const filename of fs.readdirSync(dir)) {
           console.log(`===== ${ct[0].parsed?.type} =====`);
         }
       }
-
 
       count_messages += 1;
     }

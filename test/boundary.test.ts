@@ -112,4 +112,64 @@ describe("Rewrite multipart boundaries", () => {
     expect(msg_new_boundary.parts[0].decoded).toEqual(msg.parts[0].decoded);
     expect(msg_new_boundary.parts[1].decoded).toEqual(msg.parts[1].decoded);
   });
+
+  it("Digest Subtype", () => {
+    const msg_text = Buffer.from(
+      dedent`
+     From: Moderator-Address@example.com (not sure what 'Moderator-Address' with no domain is)
+     To: Recipient-List@example.net (not sure what 'Recipient-List' with no domain is)
+     Date: Mon, 22 Mar 1994 13:34:51 +0000
+     Subject: Internet Digest, volume 42
+     MIME-Version: 1.0
+     Content-Type: multipart/mixed;
+                   boundary="---- main boundary ----"
+
+     ------ main boundary ----
+
+       ...Introductory text or table of contents...
+
+     ------ main boundary ----
+     Content-Type: multipart/digest;
+                   boundary="---- next message ----"
+
+     ------ next message ----
+
+     From: someone-else@example.com
+     Date: Fri, 26 Mar 1993 11:13:32 +0200
+     Subject: my opinion
+
+       ...body goes here ...
+
+     ------ next message ----
+
+     From: someone-else-again@example.net
+     Date: Fri, 26 Mar 1993 10:07:13 -0500
+     Subject: my different opinion
+
+       ... another body goes here ...
+
+     ------ next message ------
+
+     ------ main boundary ------
+    `.replace(/\n/g, "\r\n")
+    ); // CRLF line endings
+
+    const msg = new Message(msg_text);
+    msg.decode();
+    msg.change_boundary();
+    msg.rewrite_headers();
+    msg.encode();
+
+    /*
+    const raw_new_boundary = msg.get_data();
+    const msg_new_boundary = new Message(raw_new_boundary);
+    msg_new_boundary.decode();
+
+    // Make sure the parts match.
+    expect(msg_new_boundary.parts.length).toEqual(msg.parts.length);
+    for (let p=0; p<msg.parts.length; ++p) {
+      expect(msg_new_boundary.parts[p].decoded).toEqual(msg.parts[p].decoded);
+    }
+    */
+  });
 });

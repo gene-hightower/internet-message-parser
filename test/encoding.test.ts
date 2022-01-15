@@ -1,6 +1,6 @@
 import dedent from "ts-dedent";
 
-import { Message } from "../lib/Message";
+import { Message, MessageType } from "../lib/Message";
 
 const Iconv = require("iconv").Iconv;
 const zlib = require("zlib");
@@ -52,7 +52,7 @@ describe("Content-Type: encodings", () => {
         P2lkPTQK
     `.replace(/\n/g, "\r\n") + "\r\n"
     ); // CRLF line endings
-    const msg = new Message(msg_text, false);
+    const msg = new Message(msg_text, MessageType.part);
     msg.decode();
 
     expect(msg.hdr_idx["content-type"][0].parsed.type).toEqual("text");
@@ -79,8 +79,8 @@ describe("Content-Type: encodings", () => {
     `.replace(/\n/g, "\r\n") + "\r\n"
     ); // CRLF line endings
     const iconv = new Iconv("utf-8", "ISO-8859-1");
-    const iso8859 = iconv.convert(msg_text);
-    const msg = new Message(iso8859);
+    const iso8859_text = iconv.convert(msg_text);
+    const msg = new Message(iso8859_text);
     msg.decode();
 
     expect(msg.hdr_idx["message-id"][0].parsed);

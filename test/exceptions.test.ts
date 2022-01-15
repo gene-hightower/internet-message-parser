@@ -37,11 +37,13 @@ describe("Parse failures", () => {
       const msg = new Message(msg_text);
     } catch (e) {
       const ex = e as Error;
-      expect(ex.message).toEqual("syntax error in Date: header");
+      expect(ex.message).toEqual(
+        "syntax error in Date: header #1 (Date: 26 Aug 76 1429 EDT (missing ':' between hours and minutes))"
+      );
       return;
     }
 
-    fail("expecting bad Date: syntax excpetion");
+    fail('expecting "syntax error in Date: header #1…" exception');
   });
 
   it("missing From: header", () => {
@@ -96,7 +98,7 @@ describe("Parse failures", () => {
       const msg = new Message(msg_text);
     } catch (e) {
       const ex = e as Error;
-      expect(ex.message).toEqual("must have a recipient, one of To:, Cc:, or Bcc:");
+      expect(ex.message).toEqual("must have a recipient; at least one of To:, Cc:, or Bcc:");
       return;
     }
 
@@ -415,10 +417,12 @@ describe("Parse failures", () => {
       msg.decode();
     } catch (e) {
       const ex = e as Error;
-      expect(ex.message).toEqual("syntax error in Content-Transfer-Encoding: header");
+      expect(ex.message).toEqual(
+        "syntax error in Content-Transfer-Encoding: header #1 (Content-Transfer-Encoding: unknown)"
+      );
       return;
     }
 
-    fail('expecting "syntax error in Content-Transfer-Encoding: header" excpetion');
+    fail('expecting "syntax error in Content-Transfer-Encoding: header #1…"');
   });
 });

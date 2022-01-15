@@ -1,10 +1,11 @@
 import dedent from "ts-dedent";
 
-import { Message } from "../lib/Message";
+import { Message, MessageType } from "../lib/Message";
 
 describe("RFC-822 full header examples", () => {
   it("The DDG test", () => {
-    const msg_text = Buffer.from(dedent`Subject: Sample message
+    const msg_text = Buffer.from(
+      dedent`Subject: Sample message
                                         MIME-Version: 1.0
                                         Content-type: multipart / mixed; boundary = (is what?) "simple boundary"
                                         To: Some Random User <random@mailhog.duck>
@@ -367,7 +368,7 @@ describe("RFC-2045", () => {
     `.replace(/\n/g, "\r\n") + "\r\n"
     ); // CRLF line endings
 
-    const msg = new Message(msg_text, false);
+    const msg = new Message(msg_text, MessageType.part);
     msg.decode();
 
     expect(msg.hdr_idx["mime-version"][0].parsed);
