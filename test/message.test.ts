@@ -6,7 +6,7 @@ describe("RFC-822 full header examples", () => {
   it("The DDG test", () => {
     const msg_text = Buffer.from(dedent`Subject: Sample message
                                         MIME-Version: 1.0
-                                        Content-type: multipart/mixed; boundary="simple boundary"
+                                        Content-type: multipart / mixed; boundary = (is what?) "simple boundary"
                                         To: Some Random User <random@mailhog.duck>
                                         Received: by haraka.duck; Fri, 14 Jan 2022 18:38:59 +0000
                                         Message-ID: <7B2A3F04-9FEB-4947-8E99-6563ADB1CA93.1@haraka.duck>
