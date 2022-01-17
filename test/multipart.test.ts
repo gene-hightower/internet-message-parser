@@ -4,7 +4,7 @@ import { Message, MessageType } from "../lib/Message";
 import { ContentType } from "../lib/message-types";
 import { SyntaxError, parse, structuredHeaders } from "../lib/message-parser";
 
-describe("Test ", () => {
+describe("test multiple parts", () => {
   it("message/rfc822", () => {
     const msg_text =
       Buffer.from(
@@ -141,6 +141,8 @@ describe("Test ", () => {
     const ct_2_0 = parse('Content-Type: multipart/mixed; boundary="3.x"\r\n');
     expect(msg.parts[2].parts[0].hdr_idx['content-type'][0].parsed).toEqual(ct_2_0);
 
+    expect(msg.parts[2].parts[0].parts.length).toEqual(2);
+
     const ct_3 = parse('Content-Type: multipart/mixed; boundary="4.x"\r\n');
     expect(msg.parts[3].hdr_idx['content-type'][0].parsed).toEqual(ct_3);
 
@@ -164,5 +166,97 @@ describe("Test ", () => {
 
     const ct_3_1_0_1_1 = parse('Content-Type: text/richtext\r\n');
     expect(msg.parts[3].parts[1].parts[0].parts[1].parts[1].hdr_idx['content-type'][0].parsed).toEqual(ct_3_1_0_1_1);
+  });
+
+  it("another example of nested parts", () => {
+    const msg_text =
+      Buffer.from(
+        dedent`Subject: foo bar
+              Content-Type: multipart/mixed;
+              	boundary="=_X_="
+              MIME-Version: 1.0
+              To: foo@example.net
+              Message-ID: <something-like-an-id@example.net>
+              Date: Mon, 17 Jan 2022 16:23:42 -0500
+              From: bar@example.com
+
+              --=_X_=
+              Content-Type: multipart/related;
+              	boundary="=_Y_=";
+              	type="multipart/alternative"
+
+              --=_Y_=
+              Content-Type: multipart/alternative;
+              	boundary="=_Z_="
+
+              --=_Z_=
+              Content-Type: text/plain; charset="utf-8"
+
+              Some utf-8 text.
+              --=_Z_=
+              Content-Type: text/html; charset="utf-8"
+
+              <!doctype html>
+              --=_Z_=--
+              --=_Y_=
+              Content-Type: text/plain; charset=us-ascii
+              Content-ID: <b41d80b5d67d@domain>
+
+              Some us-ascii text.
+              --=_Y_=--
+              --=_X_=
+              Content-Type: text/plain; name="v4_uuids.txt"
+              Content-Description: v4_uuids.txt
+              Content-Disposition: attachment; filename="v4_uuids.txt"; size=92;
+              	creation-date="Mon, 17 Jan 2022 21:23:32 GMT";
+              	modification-date="Mon, 17 Jan 2022 21:23:38 GMT"
+              Content-Transfer-Encoding: base64
+
+              YTQ4OS0wN2Q3NDk1NGVhNWMNCmVhZDllMDg4LTIxOTgtNDI0My1hYzk4LTc5ODYzZjg4ZTFmNw0K
+              MmQxYTU1MDgtYjQ2YS00ZmE5LWIyOTItMWM4NzdiYzNlZTYx
+              --=_X_=--
+        `.replace(/\n/g, "\r\n")
+      );
+    const msg = new Message(Buffer.from(msg_text), MessageType.part);
+
+    msg.decode();
+
+    expect(msg.parts.length).toEqual(2); // =_X_=
+    const ct = parse('Content-Type: multipart/mixed; boundary="=_X_="\r\n');
+    expect(msg.hdr_idx['content-type'][0].parsed.type).toEqual(ct.type);
+    expect(msg.hdr_idx['content-type'][0].parsed.subtype).toEqual(ct.subtype);
+    expect(msg.hdr_idx['content-type'][0].parsed.boundary).toEqual(ct.boundary);
+
+    expect(msg.parts[0].parts.length).toEqual(2); // =_Y_=
+    const ct_0 = parse('Content-Type: multipart/related; boundary="=_Y_="\r\n');
+    expect(msg.parts[0].hdr_idx['content-type'][0].parsed.type).toEqual(ct_0.type);
+    expect(msg.parts[0].hdr_idx['content-type'][0].parsed.subtype).toEqual(ct_0.subtype);
+    expect(msg.parts[0].hdr_idx['content-type'][0].parsed.boundary).toEqual(ct_0.boundary);
+
+    expect(msg.parts[0].parts[0].parts.length).toEqual(2); // =_Z_=
+    const ct_0_0 = parse('Content-Type: multipart/alternative; boundary="=_Z_="\r\n');
+    expect(msg.parts[0].parts[0].hdr_idx['content-type'][0].parsed.type).toEqual(ct_0_0.type);
+    expect(msg.parts[0].parts[0].hdr_idx['content-type'][0].parsed.subtype).toEqual(ct_0_0.subtype);
+    expect(msg.parts[0].parts[0].hdr_idx['content-type'][0].parsed.boundary).toEqual(ct_0_0.boundary);
+
+    const ct_0_0_0 = parse('Content-Type: text/plain; charset="utf-8"\r\n');
+    expect(msg.parts[0].parts[0].parts[0].hdr_idx['content-type'][0].parsed).toEqual(ct_0_0_0);
+
+    const ct_0_0_1 = parse('Content-Type: text/html; charset="utf-8"\r\n');
+    expect(msg.parts[0].parts[0].parts[1].hdr_idx['content-type'][0].parsed).toEqual(ct_0_0_1);
+
+    const ct_0_1 = parse('Content-Type: text/plain; charset=us-ascii\r\n');
+    expect(msg.parts[0].parts[1].hdr_idx['content-type'][0].parsed).toEqual(ct_0_1);
+
+    const ct_1 = parse('Content-Type: text/plain; name="v4_uuids.txt"\r\n');
+    expect(msg.parts[0].hdr_idx['content-type'][0].parsed.type).toEqual(ct_0.type);
+    expect(msg.parts[0].hdr_idx['content-type'][0].parsed.subtype).toEqual(ct_0.subtype);
+
+    msg.decode();
+    msg.change_boundary();
+    msg.rewrite_headers();
+    msg.encode();
+
+    console.log(`${msg.get_data().toString()}`);
   });
 });
