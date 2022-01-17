@@ -96,7 +96,7 @@ function hash(s: string): string {
     .update("6.283185307179586")
     .update(s)
     .digest("base64")
-    .substr(0, 22);
+    .substr(0, 22);             // 22 chars times 6 bits per char is 132 bits
 }
 
 export function is_structured_header(name: string) {
@@ -266,14 +266,18 @@ export class Message {
       // Required fields for full messages only.
       for (const fld of required) {
         const key = fld.toLowerCase();
-        if (!this.hdr_idx[key]) throw new Error(`missing ${fld}: header`);
+        if (!this.hdr_idx[key]) {
+          throw new Error(`missing ${fld}: header`);
+        }
       }
     }
 
     for (const fld of unique) {
       const key = fld.toLowerCase();
       const vals = this.hdr_idx[key];
-      if (vals && vals.length > 1) throw new Error(`too many ${fld}: headers`);
+      if (vals && vals.length > 1) {
+        throw new Error(`too many ${fld}: headers`);
+      }
     }
     for (const fld of correct) {
       const key = fld.toLowerCase();
@@ -281,7 +285,9 @@ export class Message {
       if (vals) {
         let n = 1;
         for (const val of vals) {
-          if (!val.parsed) throw new Error(`syntax error in ${fld}: header #${n} (${val.full_header.trim()})`);
+          if (!val.parsed) {
+            throw new Error(`syntax error in ${fld}: header #${n} (${val.full_header.trim()})`);
+          }
           ++n;
         }
       }
@@ -309,7 +315,7 @@ export class Message {
     */
   }
 
-  _get_param(name: string, parameters: Parameter[], default_value?: string) {
+  _get_param(name: string, parameters: Parameter[], default_value?: string) : string{
     const values = parameters.filter((p) => !!p[name]).map((v) => v[name].trim());
 
     if (values.length === 0 && default_value) values.push(default_value);
@@ -318,15 +324,21 @@ export class Message {
 
     const uniq = [...new Set(canon)]; // remove dups
 
-    if (uniq.length > 1) throw new Error(`found multiple conflicting ${name} parameters`);
-    if (uniq.length === 0) throw new Error(`parameter ${name} not found`);
+    if (uniq.length > 1) {
+      throw new Error(`found multiple conflicting ${name} parameters`);
+    }
+    if (uniq.length === 0) {
+      throw new Error(`parameter ${name} not found`);
+    }
 
     return uniq[0];
   }
 
-  _get_content_type_with_default() {
+  _get_content_type() {
     const ct = this.hdr_idx["content-type"];
-    if (ct && ct[0].parsed) return ct[0].parsed;
+    if (ct && ct[0].parsed) {
+      return ct[0].parsed;
+    }
 
     switch (this.type) {
       case MessageType.full:
@@ -342,31 +354,21 @@ export class Message {
     }
   }
 
-  _get_boundary() {
-    const ct = this._get_content_type_with_default();
-    if (ct.type !== "multipart") return null;
+  _get_boundary(): string | null {
+    const ct = this._get_content_type();
 
-    /*
-      In my mailbox I find:
-
-      Content-Type: multipart/signed;
-	boundary="Apple-Mail=_9A03B61D-50E6-4D41-B64E-473BCFD5D818";
-	protocol="application/pkcs7-signature";
-	micalg=sha-256
-      Content-Transfer-Encoding: quoted-printable
-
-      So, let's just ignore the Content-Transfer-Encoding for multipart types.
-
-    if (!this._is_identity_encoding(this._get_encoding()))
-      throw new Error('only 7bit, 8bit, or binary Content-Transfer-Encoding allowed for multipart messages');
-    */
+    if (ct.type !== 'multipart') {
+      return null;
+    }
 
     const boundary = this._get_param("boundary", ct.parameters);
 
     if (!/^[ 0-9A-Za-z'\(\)+_,\-\./:=\?]+$/.test(boundary))
       throw new Error(`invalid character in multipart boundary (${boundary})`);
 
-    if (boundary[boundary.length - 1] == " ") throw new Error(`multipart boundary must not end with a space`);
+    if (boundary[boundary.length - 1] == " ") {
+      throw new Error(`multipart boundary must not end with a space`);
+    }
 
     return boundary;
   }
@@ -377,24 +379,25 @@ export class Message {
       // no body, no parts
       return;
 
-    const ct = this._get_content_type_with_default();
-    if (ct.type !== "multipart") return;
+    const ct = this._get_content_type();
 
-    const default_part_type = (() => {
-      switch (ct.subtype.toLowerCase()) {
-        case "digest":
-          return MessageType.message_rfc822;
-
-        case "alternative":
-        case "related":
-        case "mixed":
-        default:
-          return MessageType.part;
+    if (ct.type === "message") {
+      if (ct.subtype === "rfc822") {
+        this.parts.push(new Message(this.body, MessageType.message_rfc822));
       }
-    })();
+      // e.g. if (ct.subtype === "partial") there is no breaking down the body,
+      // therefore not parts.
+      return;
+    }
+
+    if (ct.type !== "multipart") {
+      return;
+    }
 
     const boundary = this._get_boundary();
-    if (boundary === null) return;
+    if (boundary === null)
+      // redundant check with ct.type check above
+      return;
 
     let boundary_found = false;
     let end_found = false;
@@ -415,7 +418,7 @@ export class Message {
           boundary_found = true;
         } else {
           try {
-            this.parts.push(new Message(this.body.slice(last_offset, match.index), default_part_type));
+            this.parts.push(new Message(this.body.slice(last_offset, match.index), MessageType.part));
           } catch (e) {
             const ex = e as NodeJS.ErrnoException;
             throw new Error(`submessage encap part #${this.parts.length}, off ${last_offset} failed: ${ex.message}`);
@@ -431,7 +434,7 @@ export class Message {
           throw new Error(`close-delimiter found at offset ${match.index} before any dash-boundary`);
         }
         try {
-          this.parts.push(new Message(this.body.slice(last_offset, match.index), default_part_type));
+          this.parts.push(new Message(this.body.slice(last_offset, match.index), MessageType.part));
         } catch (e) {
           const ex = e as NodeJS.ErrnoException;
           throw new Error(`submessage end part #${this.parts.length}, off ${last_offset} failed: ${ex.message}`);
@@ -461,18 +464,10 @@ export class Message {
 
   _get_transfer_encoding() {
     const ce = this.hdr_idx["content-transfer-encoding"];
-    if (ce && ce[0].parsed && ce[0].parsed.mechanism) return ce[0].parsed.mechanism;
-    return "8bit"; // <- the RFC suggests 7bit as default
-  }
-
-  _is_identity_encoding(enc: Encoding): boolean {
-    switch (enc) {
-      case "7bit":
-      case "8bit":
-      case "binary":
-        return true;
+    if (ce && ce[0].parsed && ce[0].parsed.mechanism) {
+      return ce[0].parsed.mechanism;
     }
-    return false;
+    return "8bit"; // <- the RFC suggests 7bit as default
   }
 
   /* Call a function “f” to transform each text type body part.
@@ -483,9 +478,9 @@ export class Message {
         part.all_text_parts(f);
       }
     } else if (typeof this.decoded === "string") {
-      const ct = this._get_content_type_with_default();
+      const ct = this._get_content_type();
       if (ct.type === "text")
-        // should be true if decoded is a string
+        // should always be true if decoded is a string
         this.decoded = f(this.decoded, ct.subtype);
     }
   }
@@ -494,10 +489,14 @@ export class Message {
    */
   decode() {
     if (this.parts.length) {
-      for (const part of this.parts) part.decode();
+      for (const part of this.parts) {
+        part.decode();
+      }
       return;
     }
-    if (!this.body) return;
+    if (!this.body) {
+      return;
+    }
 
     let body;
     const enc = this._get_transfer_encoding();
@@ -519,10 +518,9 @@ export class Message {
 
       default:
         throw new Error(`unknown Content-Transfer-Encoding ${enc}`);
-        break;
     }
 
-    const ct = this._get_content_type_with_default();
+    const ct = this._get_content_type();
 
     if (ct.type !== "text") {
       this.decoded = body;
@@ -561,12 +559,14 @@ export class Message {
    */
   encode() {
     if (this.parts.length) {
-      for (const part of this.parts) part.encode();
+      for (const part of this.parts) {
+        part.encode();
+      }
       return;
     }
     if (!this.decoded) return;
 
-    const ct = this._get_content_type_with_default();
+    const ct = this._get_content_type();
 
     let body;
     if (ct.type === "text") {
@@ -581,7 +581,9 @@ export class Message {
         if (ex.code === "EILSEQ") {
           // Now we fall-back to Unicode, which should always work.
           const cty = this.hdr_idx["content-type"];
-          if (!cty) throw ex; // we should never get a conversion error unless the cty is set
+          if (!cty)
+            // we should never get a conversion error unless Content-Type: is set
+            throw ex;
 
           this._set_field("Content-Type", `text/${cty[0].parsed.subtype}; charset=utf-8`);
           this._set_field("Content-Transfer-Encoding", "quoted-printable");
@@ -617,19 +619,26 @@ export class Message {
 
       default:
         throw new Error(`unknown Content-Transfer-Encoding ${enc}`);
-        break;
     }
   }
 
   change_boundary() {
-    const ct = this._get_content_type_with_default();
-    if (ct.type !== "multipart") return;
-    for (const param of ct.parameters) if (param.boundary) param.boundary = `"=_${hash(param.boundary)}_="`;
-    for (const part of this.parts) part.change_boundary();
+    for (const part of this.parts) {
+      part.change_boundary();
+    }
+
+    const ct = this._get_content_type();
+    if (ct.type === "multipart") {
+      for (const param of ct.parameters) {
+        if (param.boundary) {
+          param.boundary = `"=_${hash(param.boundary)}_="`;
+        }
+      }
+    }
   }
 
-  get_data() {
-    // Horrendous inefficient Buffer copies, could be improved.
+  get_data(): Buffer {
+    // Horrendous, inefficient Buffer copies; could be improved.
     let buf = Buffer.alloc(0);
 
     for (const hdr of this.headers) {
@@ -639,7 +648,7 @@ export class Message {
     if (this.parts.length) {
       const boundary = this._get_boundary();
       if (!boundary) {
-        throw new Error(`multiple parts without a boundary`);
+        return Buffer.concat([buf, Buffer.from(`\r\n`), this.parts[0].get_data()]);
       }
       for (const part of this.parts) {
         buf = Buffer.concat([buf, Buffer.from(`\r\n--${boundary}\r\n`), part.get_data()]);
@@ -655,6 +664,10 @@ export class Message {
   /* Regenerate canonical textual name and value of parsed headers.
    */
   rewrite_headers() {
+    for (const part of this.parts) {
+      part.rewrite_headers();
+    }
+
     for (const hdr of this.headers) {
       if (hdr.parsed instanceof ContentType) {
         let nv = `${hdr.parsed.type}/${hdr.parsed.subtype}`;
