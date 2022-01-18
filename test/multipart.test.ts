@@ -256,7 +256,5 @@ describe("test multiple parts", () => {
     msg.change_boundary();
     msg.rewrite_headers();
     msg.encode();
-
-    console.log(`${msg.get_data().toString()}`);
   });
 });
