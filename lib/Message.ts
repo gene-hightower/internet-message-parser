@@ -96,7 +96,7 @@ function hash(s: string): string {
     .update("6.283185307179586")
     .update(s)
     .digest("base64")
-    .substr(0, 22);             // 22 chars times 6 bits per char is 132 bits
+    .substr(0, 22); // 22 chars times 6 bits per char is 132 bits
 }
 
 export function is_structured_header(name: string) {
@@ -315,7 +315,7 @@ export class Message {
     */
   }
 
-  _get_param(name: string, parameters: Parameter[], default_value?: string) : string{
+  _get_param(name: string, parameters: Parameter[], default_value?: string): string {
     const values = parameters.filter((p) => !!p[name]).map((v) => v[name].trim());
 
     if (values.length === 0 && default_value) values.push(default_value);
@@ -357,7 +357,7 @@ export class Message {
   _get_boundary(): string | null {
     const ct = this._get_content_type();
 
-    if (ct.type !== 'multipart') {
+    if (ct.type !== "multipart") {
       return null;
     }
 
