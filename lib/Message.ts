@@ -637,8 +637,68 @@ export class Message {
     }
   }
 
+  _get_hdr_sz(): number {
+    let sz = 0;
+    for (const hdr of this.headers) {
+      // the +2s are for ": " and "\r\n"
+      sz += Buffer.byteLength(hdr.name) + 2 + Buffer.byteLength(hdr.value) + 2;
+    }
+    return sz;
+  }
+
+  _get_data_sz(): number {
+    let sz = this._get_hdr_sz();
+    if (this.parts.length) {
+      const boundary = this._get_boundary();
+      if (!boundary) {
+        return sz + 2 + this.parts[0]._get_data_sz(); // "\r\n" + parts[0]
+      }
+      for (const part of this.parts) {
+        sz += `\r\n--${boundary}\r\n`.length + part._get_data_sz();
+      }
+      sz += `\r\n--${boundary}--`.length;
+    } else if (this.body) {
+      sz += `\r\n`.length + this.body.length;
+    }
+    return sz;
+  }
+
   get_data(): Buffer {
-    // Horrendous, inefficient Buffer copies; could be improved.
+    let sz = this._get_data_sz();
+    let buf = Buffer.alloc(sz);
+    let p = 0;
+
+    for (const hdr of this.headers) {
+      p += buf.write(`${hdr.name}: ${hdr.value}\r\n`, p, "utf-8");
+    }
+    if (p !== this._get_hdr_sz()) throw new Error(`programmar fail: header size`);
+
+    if (this.parts.length) {
+      const boundary = this._get_boundary();
+      if (!boundary) {
+        p += Buffer.from(`\r\n`).copy(buf, p);
+        p += this.parts[0].get_data().copy(buf, p);
+        if (p !== sz) throw new Error(`programmar fail: size`);
+        return buf;
+      }
+      for (const part of this.parts) {
+        p += Buffer.from(`\r\n--${boundary}\r\n`).copy(buf, p);
+        p += part.get_data().copy(buf, p);
+      }
+      p += Buffer.from(`\r\n--${boundary}--`).copy(buf, p);
+    } else if (this.body) {
+      p += Buffer.from(`\r\n`).copy(buf, p);
+      p += this.body.copy(buf, p);
+    }
+    if (p !== sz) throw new Error(`programmar fail: body size`);
+
+    return buf;
+  }
+
+  /* The initial way I wrote the above get_data(), now I'm not too sure I shouldn't just leave it this way.
+   */
+  _get_data_slow(): Buffer {
+    // Inefficient Buffer copies? Much nicer code.
     let buf = Buffer.alloc(0);
 
     for (const hdr of this.headers) {
