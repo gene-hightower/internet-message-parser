@@ -4,7 +4,8 @@ import { Message, MessageType } from "../lib/Message";
 
 describe("DKIM Signatures RFC-6376 ", () => {
   it("Simple parse test", () => {
-    const msg_text = Buffer.from(`DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+    const msg_text = Buffer.from(
+      `DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20161025;
         h=mime-version:reply-to:from:date:message-id:subject:to;
         bh=8RegOlJD0udPc+TogIjhWcR2b9VwF9rz0+RfjmeNupQ=;
@@ -19,5 +20,4 @@ describe("DKIM Signatures RFC-6376 ", () => {
     const msg = new Message(msg_text, MessageType.part);
     expect(msg.hdr_idx["dkim-signature"][0].parsed);
   });
-
 });

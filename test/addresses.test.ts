@@ -85,23 +85,33 @@ describe("address-list", () => {
     expect(msg.hdr_idx["from"][0].parsed);
   });
 
-  // Not sure about this one.
+  // Not sure if this should be accepted.
   it.skip("mixed group", () => {
-    const msg_text = Buffer.from(`From: Foo <foo@example.com>, Disclosed:baz@example.net, bix@example.com;,,,, Undisclosed:;\r\n`);
+    const msg_text = Buffer.from(
+      `From: Foo <foo@example.com>, Disclosed:baz@example.net, bix@example.com;,,,, Undisclosed:;\r\n`
+    );
     const msg = new Message(msg_text, MessageType.part);
     expect(msg.hdr_idx["from"][0].parsed);
   });
 
+  // Not sure if this should be accepted.
+  it.skip("semicolon / group", () => {
+    const msg_text = Buffer.from(
+      `From: Test User <test.user@mail.ee>; Disclosed:andris@tr.ee, andris@example.com;,,,, Undisclosed:; bob@example.com;\r\n`
+    );
+    const msg = new Message(msg_text, MessageType.part);
+    expect(msg.hdr_idx["from"][0].parsed);
+  });
 });
 
 describe("ill formed address-list", () => {
-  it("foo foo@example.com", () => {
+  it("junk before address", () => {
     const msg_text = Buffer.from(`From: foo foo@example.com\r\n`);
     try {
       const msg = new Message(msg_text, MessageType.part);
     } catch (e) {
       const ex = e as Error;
-      expect(ex.message).toEqual('syntax error in From: header #1 (From: foo foo@example.com)');
+      expect(ex.message).toEqual("syntax error in From: header #1 (From: foo foo@example.com)");
       return;
     }
     fail("expecting excpetion");
@@ -113,7 +123,7 @@ describe("ill formed address-list", () => {
       const msg = new Message(msg_text, MessageType.part);
     } catch (e) {
       const ex = e as Error;
-      expect(ex.message).toEqual('syntax error in From: header #1 (From: (nothing here))');
+      expect(ex.message).toEqual("syntax error in From: header #1 (From: (nothing here))");
       return;
     }
     fail("expecting excpetion");
@@ -125,11 +135,47 @@ describe("ill formed address-list", () => {
       const msg = new Message(msg_text, MessageType.part);
     } catch (e) {
       const ex = e as Error;
-      expect(ex.message).toEqual('syntax error in From: header #1 (From: foo@example.com (bar) baz)');
+      expect(ex.message).toEqual("syntax error in From: header #1 (From: foo@example.com (bar) baz)");
       return;
     }
     fail("expecting excpetion");
   });
 
+  it.skip("bare name", () => {
+    const msg_text = Buffer.from(`From: Foo\r\n`);
+    try {
+      const msg = new Message(msg_text, MessageType.part);
+    } catch (e) {
+      const ex = e as Error;
+      expect(ex.message).toEqual("syntax error in From: header #1 (From: Foo)");
+      return;
+    }
+    fail("expecting excpetion");
+  });
 
+  it.skip("bare name with apostrophe", () => {
+    const msg_text = Buffer.from(`From: O'A\r\n`);
+    try {
+      const msg = new Message(msg_text, MessageType.part);
+    } catch (e) {
+      const ex = e as Error;
+      expect(ex.message).toEqual(`syntax error in From: header #1 (From: O'A`);
+      return;
+    }
+    fail("expecting excpetion");
+  });
+
+  it.skip("particularily bad input", () => {
+    const msg_text = Buffer.from(`From: FirstName Surname-WithADash :: Company <name@example.com>\r\n`);
+    try {
+      const msg = new Message(msg_text, MessageType.part);
+    } catch (e) {
+      const ex = e as Error;
+      expect(ex.message).toEqual(
+        "syntax error in From: header #1 (From: FirstName Surname-WithADash :: Company <name@example.com>)"
+      );
+      return;
+    }
+    fail("expecting excpetion");
+  });
 });

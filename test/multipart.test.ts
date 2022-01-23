@@ -6,9 +6,8 @@ import { SyntaxError, parse, structuredHeaders } from "../lib/message-parser";
 
 describe("test multiple parts", () => {
   it("message/rfc822", () => {
-    const msg_text =
-      Buffer.from(
-        dedent`Content-Type: MESSAGE/RFC822
+    const msg_text = Buffer.from(
+      dedent`Content-Type: MESSAGE/RFC822
 
                From: me@myself.com
                To: me@myself.com
@@ -28,20 +27,18 @@ describe("test multiple parts", () => {
 
                --x--
         `.replace(/\n/g, "\r\n")
-      );
+    );
     const msg = new Message(Buffer.from(msg_text), MessageType.part);
 
     msg.decode();
     msg.change_boundary();
     msg.rewrite_headers();
     msg.encode();
-
   });
 
   it("lots of nested parts", () => {
-    const msg_text =
-      Buffer.from(
-        dedent`From: me@myself.com
+    const msg_text = Buffer.from(
+      dedent`From: me@myself.com
                To: me@myself.com
                Subject: Sample message structure for IMAP part specifiers
                MIME-Version: 1.0
@@ -118,7 +115,7 @@ describe("test multiple parts", () => {
                (^ This is the one that went missing in the gmime test.)
                --x--
         `.replace(/\n/g, "\r\n")
-      );
+    );
     const msg = new Message(msg_text);
 
     expect(msg.parts.length).toEqual(4);
@@ -127,51 +124,50 @@ describe("test multiple parts", () => {
     // one-based boundary strings and IMAP part specifiers.
 
     const ct = parse('Content-Type: multipart / mixed; boundary = (a quoted-string) "x"\r\n');
-    expect(msg.hdr_idx['content-type'][0].parsed).toEqual(ct);
+    expect(msg.hdr_idx["content-type"][0].parsed).toEqual(ct);
 
-    const ct_0 = parse('Content-Type: text/plain\r\n');
-    expect(msg.parts[0].hdr_idx['content-type'][0].parsed).toEqual(ct_0);
+    const ct_0 = parse("Content-Type: text/plain\r\n");
+    expect(msg.parts[0].hdr_idx["content-type"][0].parsed).toEqual(ct_0);
 
-    const ct_1 = parse('Content-Type: application/octet-stream\r\n');
-    expect(msg.parts[1].hdr_idx['content-type'][0].parsed).toEqual(ct_1);
+    const ct_1 = parse("Content-Type: application/octet-stream\r\n");
+    expect(msg.parts[1].hdr_idx["content-type"][0].parsed).toEqual(ct_1);
 
-    const ct_2 = parse('Content-Type: message/rfc822\r\n');
-    expect(msg.parts[2].hdr_idx['content-type'][0].parsed).toEqual(ct_2);
+    const ct_2 = parse("Content-Type: message/rfc822\r\n");
+    expect(msg.parts[2].hdr_idx["content-type"][0].parsed).toEqual(ct_2);
 
     const ct_2_0 = parse('Content-Type: multipart/mixed; boundary="3.x"\r\n');
-    expect(msg.parts[2].parts[0].hdr_idx['content-type'][0].parsed).toEqual(ct_2_0);
+    expect(msg.parts[2].parts[0].hdr_idx["content-type"][0].parsed).toEqual(ct_2_0);
 
     expect(msg.parts[2].parts[0].parts.length).toEqual(2);
 
     const ct_3 = parse('Content-Type: multipart/mixed; boundary="4.x"\r\n');
-    expect(msg.parts[3].hdr_idx['content-type'][0].parsed).toEqual(ct_3);
+    expect(msg.parts[3].hdr_idx["content-type"][0].parsed).toEqual(ct_3);
 
-    const ct_3_0 = parse('Content-Type: image/gif\r\n');
-    expect(msg.parts[3].parts[0].hdr_idx['content-type'][0].parsed).toEqual(ct_3_0);
+    const ct_3_0 = parse("Content-Type: image/gif\r\n");
+    expect(msg.parts[3].parts[0].hdr_idx["content-type"][0].parsed).toEqual(ct_3_0);
 
-    const ct_3_1 = parse('Content-Type: message/rfc822\r\n');
-    expect(msg.parts[3].parts[1].hdr_idx['content-type'][0].parsed).toEqual(ct_3_1);
+    const ct_3_1 = parse("Content-Type: message/rfc822\r\n");
+    expect(msg.parts[3].parts[1].hdr_idx["content-type"][0].parsed).toEqual(ct_3_1);
 
     const ct_3_1_0 = parse('Content-Type: multipart/mixed; boundary="4.2.x"\r\n');
-    expect(msg.parts[3].parts[1].parts[0].hdr_idx['content-type'][0].parsed).toEqual(ct_3_1_0);
+    expect(msg.parts[3].parts[1].parts[0].hdr_idx["content-type"][0].parsed).toEqual(ct_3_1_0);
 
-    const ct_3_1_0_0 = parse('Content-Type: text/plain\r\n');
-    expect(msg.parts[3].parts[1].parts[0].parts[0].hdr_idx['content-type'][0].parsed).toEqual(ct_3_1_0_0);
+    const ct_3_1_0_0 = parse("Content-Type: text/plain\r\n");
+    expect(msg.parts[3].parts[1].parts[0].parts[0].hdr_idx["content-type"][0].parsed).toEqual(ct_3_1_0_0);
 
     const ct_3_1_0_1 = parse('Content-Type: multipart/alternative; boundary="4.2.2.x"\r\n');
-    expect(msg.parts[3].parts[1].parts[0].parts[1].hdr_idx['content-type'][0].parsed).toEqual(ct_3_1_0_1);
+    expect(msg.parts[3].parts[1].parts[0].parts[1].hdr_idx["content-type"][0].parsed).toEqual(ct_3_1_0_1);
 
-    const ct_3_1_0_1_0 = parse('Content-Type: text/plain\r\n');
-    expect(msg.parts[3].parts[1].parts[0].parts[1].parts[0].hdr_idx['content-type'][0].parsed).toEqual(ct_3_1_0_1_0);
+    const ct_3_1_0_1_0 = parse("Content-Type: text/plain\r\n");
+    expect(msg.parts[3].parts[1].parts[0].parts[1].parts[0].hdr_idx["content-type"][0].parsed).toEqual(ct_3_1_0_1_0);
 
-    const ct_3_1_0_1_1 = parse('Content-Type: text/richtext\r\n');
-    expect(msg.parts[3].parts[1].parts[0].parts[1].parts[1].hdr_idx['content-type'][0].parsed).toEqual(ct_3_1_0_1_1);
+    const ct_3_1_0_1_1 = parse("Content-Type: text/richtext\r\n");
+    expect(msg.parts[3].parts[1].parts[0].parts[1].parts[1].hdr_idx["content-type"][0].parsed).toEqual(ct_3_1_0_1_1);
   });
 
   it("another example of nested parts", () => {
-    const msg_text =
-      Buffer.from(
-        dedent`Subject: foo bar
+    const msg_text = Buffer.from(
+      dedent`Subject: foo bar
               Content-Type: multipart/mixed;
               	boundary="=_X_="
               MIME-Version: 1.0
@@ -216,41 +212,41 @@ describe("test multiple parts", () => {
               MmQxYTU1MDgtYjQ2YS00ZmE5LWIyOTItMWM4NzdiYzNlZTYx
               --=_X_=--
         `.replace(/\n/g, "\r\n")
-      );
+    );
     const msg = new Message(Buffer.from(msg_text), MessageType.part);
 
     msg.decode();
 
     expect(msg.parts.length).toEqual(2); // =_X_=
     const ct = parse('Content-Type: multipart/mixed; boundary="=_X_="\r\n');
-    expect(msg.hdr_idx['content-type'][0].parsed.type).toEqual(ct.type);
-    expect(msg.hdr_idx['content-type'][0].parsed.subtype).toEqual(ct.subtype);
-    expect(msg.hdr_idx['content-type'][0].parsed.boundary).toEqual(ct.boundary);
+    expect(msg.hdr_idx["content-type"][0].parsed.type).toEqual(ct.type);
+    expect(msg.hdr_idx["content-type"][0].parsed.subtype).toEqual(ct.subtype);
+    expect(msg.hdr_idx["content-type"][0].parsed.boundary).toEqual(ct.boundary);
 
     expect(msg.parts[0].parts.length).toEqual(2); // =_Y_=
     const ct_0 = parse('Content-Type: multipart/related; boundary="=_Y_="\r\n');
-    expect(msg.parts[0].hdr_idx['content-type'][0].parsed.type).toEqual(ct_0.type);
-    expect(msg.parts[0].hdr_idx['content-type'][0].parsed.subtype).toEqual(ct_0.subtype);
-    expect(msg.parts[0].hdr_idx['content-type'][0].parsed.boundary).toEqual(ct_0.boundary);
+    expect(msg.parts[0].hdr_idx["content-type"][0].parsed.type).toEqual(ct_0.type);
+    expect(msg.parts[0].hdr_idx["content-type"][0].parsed.subtype).toEqual(ct_0.subtype);
+    expect(msg.parts[0].hdr_idx["content-type"][0].parsed.boundary).toEqual(ct_0.boundary);
 
     expect(msg.parts[0].parts[0].parts.length).toEqual(2); // =_Z_=
     const ct_0_0 = parse('Content-Type: multipart/alternative; boundary="=_Z_="\r\n');
-    expect(msg.parts[0].parts[0].hdr_idx['content-type'][0].parsed.type).toEqual(ct_0_0.type);
-    expect(msg.parts[0].parts[0].hdr_idx['content-type'][0].parsed.subtype).toEqual(ct_0_0.subtype);
-    expect(msg.parts[0].parts[0].hdr_idx['content-type'][0].parsed.boundary).toEqual(ct_0_0.boundary);
+    expect(msg.parts[0].parts[0].hdr_idx["content-type"][0].parsed.type).toEqual(ct_0_0.type);
+    expect(msg.parts[0].parts[0].hdr_idx["content-type"][0].parsed.subtype).toEqual(ct_0_0.subtype);
+    expect(msg.parts[0].parts[0].hdr_idx["content-type"][0].parsed.boundary).toEqual(ct_0_0.boundary);
 
     const ct_0_0_0 = parse('Content-Type: text/plain; charset="utf-8"\r\n');
-    expect(msg.parts[0].parts[0].parts[0].hdr_idx['content-type'][0].parsed).toEqual(ct_0_0_0);
+    expect(msg.parts[0].parts[0].parts[0].hdr_idx["content-type"][0].parsed).toEqual(ct_0_0_0);
 
     const ct_0_0_1 = parse('Content-Type: text/html; charset="utf-8"\r\n');
-    expect(msg.parts[0].parts[0].parts[1].hdr_idx['content-type'][0].parsed).toEqual(ct_0_0_1);
+    expect(msg.parts[0].parts[0].parts[1].hdr_idx["content-type"][0].parsed).toEqual(ct_0_0_1);
 
-    const ct_0_1 = parse('Content-Type: text/plain; charset=us-ascii\r\n');
-    expect(msg.parts[0].parts[1].hdr_idx['content-type'][0].parsed).toEqual(ct_0_1);
+    const ct_0_1 = parse("Content-Type: text/plain; charset=us-ascii\r\n");
+    expect(msg.parts[0].parts[1].hdr_idx["content-type"][0].parsed).toEqual(ct_0_1);
 
     const ct_1 = parse('Content-Type: text/plain; name="v4_uuids.txt"\r\n');
-    expect(msg.parts[0].hdr_idx['content-type'][0].parsed.type).toEqual(ct_0.type);
-    expect(msg.parts[0].hdr_idx['content-type'][0].parsed.subtype).toEqual(ct_0.subtype);
+    expect(msg.parts[0].hdr_idx["content-type"][0].parsed.type).toEqual(ct_0.type);
+    expect(msg.parts[0].hdr_idx["content-type"][0].parsed.subtype).toEqual(ct_0.subtype);
 
     msg.decode();
     msg.change_boundary();
