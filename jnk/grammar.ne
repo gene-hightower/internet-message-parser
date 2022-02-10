@@ -13,34 +13,41 @@ function flat_string(d: any) {
   return "";
 }
 
-/*
-const moo = require("moo");
+class Lexer {
 
-const lexer = moo.compile({
-  quoted_string_tok:  /"(?:[\x21\x23-\x5B\x5D-\x7E]|(?:\\.))*"/,
-  domain_literal_tok: /\[[\x21-\x5B\x5E-\x7E]*\]/,
-  atom_tok:           /[A-Za-z0-9!#$%&'*+\-\\=?^_`{|}~]+/,
-  "(":                /\(/,
-  ")":                /\)/,
-  "<":                /</,
-  ">":                />/,
-  "@":                /@/,
-  ",":                /,/,
-  ";":                /;/,
-  ":":                /:/,
-  "\\":               /\\/,
-  "\"":               /"/,
-  ".":                /\./,
-  "[":                /\[/,
-  "]":                /\]/,
-  SP:                 / /,
-  HTAB:               /\t/
-});
-*/
+  constructor() {
+  }
+
+  reset(chunk: string, info: any): void
+  {
+  }
+
+  next(): NearleyToken | undefined
+  {
+      return undefined;
+  }
+
+  save(): any
+  {
+      return {};
+  }
+
+  formatError (token: never): string
+  {
+      return `Error at ${token}...`;
+  }
+
+  has(tokenType: string): boolean
+  {
+      return tokenType === 'key';
+  }
+}
+
+const lexer = new Lexer();
 
 %}
 
-### @lexer lexer
+@lexer lexer
 
 # Some macros
 
