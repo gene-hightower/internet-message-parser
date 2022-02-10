@@ -85,6 +85,12 @@ describe("address-list", () => {
     expect(msg.hdr_idx["from"][0].parsed);
   });
 
+  it("adapted from Programming Internet Email", () => {
+    const msg_text = Buffer.from(`To: Fred. (The Eliminator) <Nerk@movieworld.com.au>\r\n`);
+    const msg = new Message(msg_text, MessageType.part);
+    expect(msg.hdr_idx["to"][0].parsed);
+  });
+
   // Not sure if this should be accepted.
   it.skip("mixed group", () => {
     const msg_text = Buffer.from(

@@ -364,6 +364,7 @@ describe("RFC-2045", () => {
         MIME-Version: 1.0 (produced by MetaSend Vx.x)
         MIME-Version: (produced by MetaSend Vx.x) 1.0
         MIME-Version: 1.(produced by MetaSend Vx.x)0
+        MIME-Version: 1 . 0 (Implementation by Fred Nerk, Esq.)
         Content-type: (comments can fool some (lesser) parsers) text (like) / plain (like); charset (is) = (us?) us-ascii (Plain text)
     `.replace(/\n/g, "\r\n") + "\r\n"
     ); // CRLF line endings
