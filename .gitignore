@@ -1,5 +1,6 @@
-lib/*.js
 *~
 dist
+jnk/*
+lib/*.js
 lib/message-parser.ts
 node_modules
