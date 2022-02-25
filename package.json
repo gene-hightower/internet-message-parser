@@ -1,6 +1,6 @@
 {
   "name": "internet-message-parser",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Parse various things in an RFC-5322 Internet Message",
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
@@ -33,7 +33,7 @@
   "dependencies": {
     "iconv": "^3.0.1",
     "libqp": "^1.1.0",
-    "re2-latin1": "^1.17.4",
+    "re2-latin1": "^1.17.5",
     "ts-dedent": "^2.2.0"
   },
   "devDependencies": {
