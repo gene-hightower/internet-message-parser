@@ -188,7 +188,7 @@ describe("test multiple parts", () => {
               --=_Z_=
               Content-Type: text/plain; charset="utf-8"
 
-              Some utf-8 text.
+              Some “utf-8” text.
               --=_Z_=
               Content-Type: text/html; charset="utf-8"
 
