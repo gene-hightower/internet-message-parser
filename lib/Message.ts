@@ -722,6 +722,8 @@ export class Message {
   }
 
   /* Regenerate canonical textual name and value of parsed headers.
+   * This rewrites just the MIME headers:
+   * MIME-Version, Content-Type, and Content-Transfer-Encoding.
    */
   rewrite_headers() {
     for (const part of this.parts) {
