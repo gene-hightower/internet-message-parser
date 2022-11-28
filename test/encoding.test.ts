@@ -62,6 +62,37 @@ describe("Content-Type: encodings", () => {
     expect(msg.decoded).toMatch(/http:\/\/www\.1s1yiwu323\.net/);
   });
 
+  it("text/plain; UTF-8 incorrectly sent with charset=us-ascii, 7bit", () => {
+    const msg_text = Buffer.from(
+      dedent`
+        Message-ID: <whatever@example.com>
+        Date: Mon, 10 Jan 2022 01:59:08 -0800
+        From: foo@example.com
+        To: bar@example.net
+        Subject: some text
+        Mime-Version: 1.0
+        Content-Type: text/plain; charset=us-ascii
+        Content-Language: it
+        Content-Transfer-Encoding: 7bit
+
+        Wikipedia è un'enciclopedia online, libera e collaborativa.
+    `.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
+    const msg = new Message(msg_text);
+    msg.decode();
+
+    expect(msg.hdr_idx["message-id"][0].parsed);
+    expect(msg.hdr_idx["date"][0].parsed);
+    expect(msg.hdr_idx["from"][0].parsed);
+    expect(msg.hdr_idx["to"][0].parsed);
+    expect(msg.hdr_idx["subject"][0]);
+    expect(msg.hdr_idx["mime-version"][0].parsed);
+    expect(msg.hdr_idx["content-type"][0].parsed.type).toEqual("text");
+    expect(msg.hdr_idx["content-type"][0].parsed.subtype).toEqual("plain");
+
+    expect(msg.decoded).toEqual(`Wikipedia è un'enciclopedia online, libera e collaborativa.\r\n`);
+  });
+
   it("text/plain; charset=ISO-8859-1, 8bit", () => {
     const msg_text = Buffer.from(
       dedent`

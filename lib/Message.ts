@@ -538,23 +538,25 @@ export class Message {
       const ex = e as NodeJS.ErrnoException;
       if (ex.code === "EILSEQ") {
         ex.message = `Illegal character sequence decoding ${enc}, charset="${charset}"`;
-        try {
-          // Try again assuming UTF-8.
-          this.decoded = body.toString();
-          return;
-        } catch (ee) {
-          const eex = ee as NodeJS.ErrnoException;
-          if (eex.code === "EILSEQ") {
-            eex.message = `Illegal character sequence decoding ${enc}, charset="${charset}"`;
+        if (charset.toLowerCase() !== 'utf-8') {
+          try {
+            // Try again assuming UTF-8.
+            this.decoded = body.toString();
+            return;
+          } catch (ee) {
+            const eex = ee as NodeJS.ErrnoException;
+            if (eex.code === "EILSEQ") {
+              eex.message = `Illegal character sequence decoding ${enc}, charset="${charset}" or as UTF-8`;
+            }
+            throw eex;
           }
-          throw eex;
         }
       }
       throw ex;
     }
   }
 
-  /* Encode each decoded text body part into a the Buffer “body” using
+  /* Encode each decoded text body part into the Buffer “body” using
    * Content-Type and Content-Transfer-Encoding.
    */
   encode() {
