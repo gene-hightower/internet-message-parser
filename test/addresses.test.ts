@@ -19,6 +19,18 @@ describe("address-list", () => {
     expect(msg.hdr_idx["from"][0].parsed);
   });
 
+  it("single name-addr, addr with quoted string", () => {
+    const msg_text = Buffer.from(`From: Mr Foo <"mr foo"@example.com>\r\n`);
+    const msg = new Message(msg_text, MessageType.part);
+    expect(msg.hdr_idx["from"][0].parsed);
+  });
+
+  it("single name-addr, addr with quoted string including backslash escape", () => {
+    const msg_text = Buffer.from(`From: Mr Foo <"mr \\<foo-bar\\> foo"@example.com>\r\n`);
+    const msg = new Message(msg_text, MessageType.part);
+    expect(msg.hdr_idx["from"][0].parsed);
+  });
+
   it("single name-addr, display-name with quoted-string", () => {
     const msg_text = Buffer.from(`From: "Mr. Foo" <foo@example.com>\r\n`);
     const msg = new Message(msg_text, MessageType.part);
