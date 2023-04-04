@@ -538,7 +538,7 @@ export class Message {
       const ex = e as NodeJS.ErrnoException;
       if (ex.code === "EILSEQ") {
         ex.message = `Illegal character sequence decoding ${enc}, charset="${charset}"`;
-        if (charset.toLowerCase() !== 'utf-8') {
+        if (charset.toLowerCase() !== "utf-8") {
           try {
             // Try again assuming UTF-8.
             this.decoded = body.toString();
