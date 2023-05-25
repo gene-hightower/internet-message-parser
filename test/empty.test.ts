@@ -5,7 +5,7 @@ import { ContentType } from "../lib/message-types";
 import { SyntaxError, parse, structuredHeaders } from "../lib/message-parser";
 
 describe("empty messages", () => {
-  it("0", () => {
+  it("no end to header section", () => {
     const msg_text = Buffer.from(
       dedent`
                                  Date: Sat, 06 Dec 2003 15:41:26 +0000
@@ -34,7 +34,7 @@ describe("empty messages", () => {
     fail('expecting (unknown string at 394: "Subject: No Subject") excpetion');
   });
 
-  it("1", () => {
+  it("no body", () => {
     const msg_text = Buffer.from(
       dedent`
                                  Date: Sat, 06 Dec 2003 15:41:26 +0000
@@ -63,7 +63,7 @@ describe("empty messages", () => {
     msg2.encode();
   });
 
-  it("1", () => {
+  it("empty body", () => {
     const msg_text = Buffer.from(
       dedent`
                                  Date: Sat, 06 Dec 2003 15:41:26 +0000
