@@ -151,7 +151,7 @@ let i = 0;
 console.log(`=== top ${N} overall ===`);
 for (const complainer of complainers_sorted) {
   if (by_complainer[complainer] < 5) break;
-    console.log(complainer, Array(15 - complainer.length).join(" "), by_complainer[complainer]);
+    console.log(complainer, Array(40 - complainer.length).join(" "), by_complainer[complainer]);
   if (++i === N) break;
 }
 console.log();
@@ -176,7 +176,7 @@ for (const day of Object.keys(by_day_by_complainer)) {
   const N = 10;
   let i = 0;
   for (const complainer of sorted) {
-    console.log(complainer, Array(15 - complainer.length).join(" "), by_day_by_complainer[dayno][complainer]);
+    console.log(complainer, Array(40 - complainer.length).join(" "), by_day_by_complainer[dayno][complainer]);
     if (++i === N) break;
   }
   console.log();
