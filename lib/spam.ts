@@ -146,7 +146,7 @@ const complainers_sorted = complainer_keys.sort(function (a, b) {
   return by_complainer[b] - by_complainer[a];
 });
 
-const N = 20;
+let N = 20;
 let i = 0;
 console.log(`=== top ${N} overall ===`);
 for (const complainer of complainers_sorted) {
@@ -163,6 +163,7 @@ for (const day of Object.keys(by_day)) {
 }
 console.log();
 
+N = 10;
 console.log(`=== top ${N} by day ===`);
 for (const day of Object.keys(by_day_by_complainer)) {
   const dayno = Number(day);
@@ -173,7 +174,6 @@ for (const day of Object.keys(by_day_by_complainer)) {
   const sorted = by_day_by_complainer_keys.sort(function (a, b) {
     return by_day_by_complainer[dayno][b] - by_day_by_complainer[dayno][a];
   });
-  const N = 10;
   let i = 0;
   for (const complainer of sorted) {
     console.log(complainer, Array(40 - complainer.length).join(" "), by_day_by_complainer[dayno][complainer]);
