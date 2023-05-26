@@ -145,36 +145,25 @@ const complainer_keys = Object.keys(by_complainer);
 const complainers_sorted = complainer_keys.sort(function (a, b) {
   return by_complainer[b] - by_complainer[a];
 });
-let i = 0;
 
-console.log("=== top 20 overall ===");
+const N = 20;
+let i = 0;
+console.log(`=== top ${N} overall ===`);
 for (const complainer of complainers_sorted) {
   if (by_complainer[complainer] < 5) break;
-  console.log(by_complainer[complainer], "\t", complainer);
-  if (++i === 20) break;
+    console.log(complainer, Array(15 - complainer.length).join(" "), by_complainer[complainer]);
+  if (++i === N) break;
 }
-
 console.log();
-
-/*
-const days_keys = Object.keys(by_day);
-const days_sorted = days_keys.sort(function (a, b) {
-    return by_day[b] - by_day[a];
-});
-for (const day of days_sorted) {
-    console.log(by_day[day], day);
-}
-*/
 
 console.log("=== count by day ===");
 for (const day of Object.keys(by_day)) {
   const dayno = Number(day);
   console.log(day_number_to_date(dayno), "\t", by_day[dayno]);
 }
-
 console.log();
 
-console.log("=== top 10 by day ===");
+console.log(`=== top ${N} by day ===`);
 for (const day of Object.keys(by_day_by_complainer)) {
   const dayno = Number(day);
   console.log(day_number_to_date(dayno));
@@ -184,14 +173,13 @@ for (const day of Object.keys(by_day_by_complainer)) {
   const sorted = by_day_by_complainer_keys.sort(function (a, b) {
     return by_day_by_complainer[dayno][b] - by_day_by_complainer[dayno][a];
   });
+  const N = 10;
   let i = 0;
   for (const complainer of sorted) {
-    console.log(complainer, "\t", by_day_by_complainer[dayno][complainer]);
-    if (++i === 10) break;
+    console.log(complainer, Array(15 - complainer.length).join(" "), by_day_by_complainer[dayno][complainer]);
+    if (++i === N) break;
   }
   console.log();
 }
-
-console.log();
 
 console.log(`${total_messages} total messages processed`);
