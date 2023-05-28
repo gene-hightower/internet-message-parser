@@ -383,6 +383,127 @@ describe("RFC-2045", () => {
   });
 });
 
+describe("RFC-5322", () => {
+  it("Real spammy example", () => {
+    const msg_text = Buffer.from(
+      dedent`Return-Path: <kamal.jaisi@jagdambamotors.com>
+Received-SPF: none (digilicious.com: domain of jagdambamotors.com does not provide an SPF record) client-ip=173.231.228.62; envelope-from=kamal.jaisi@jagdambamotors.com; helo=ded5603.inmotionhosting.com;
+Received: from ded5603.inmotionhosting.com (ded5603.inmotionhosting.com [173.231.228.62])
+	by digilicious.com with ESMTPS id 7gemj4fynnah1
+	for <lizard@digilicious.com>
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256/256);
+	Thu, 27 May 2021 13:15:24 -0700
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=zrl.com.zm;
+	s=default; h=Content-Transfer-Encoding:Content-Type:MIME-Version:Message-ID:
+	Date:Subject:To:From:Reply-To:Sender:Cc:Content-ID:Content-Description:
+	Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:
+	In-Reply-To:References:List-Id:List-Help:List-Unsubscribe:List-Subscribe:
+	List-Post:List-Owner:List-Archive;
+	bh=uEts0YwrWr0daCPg+SxkWmAD72SlE0PomL9j2auGoq4=; b=RgLrMAS4Z91zJooe6ZpOo7MI1I
+	v+FGHgPTL1ikN+LEnFMkMH0iW/GH3K4qp9mdhO/vGUkKHheATULNBDfzCR4Zv8OOuSxFlm8DuN150
+	Qmnfd/lgevAgDZgHzjVrtUgZAPTN2XCg1kImKYTIQCZpCJp621CIudWx39S/k5+2kNPeRABQlRk92
+	bhALlcsZTZLesY2OjUBSQNH/qRFIS1br7eodp6LRUyv6zFRDzPlal76GlWX7ribnEMIU2NqfD3SbC
+	PCmb0qiH9woob9yaHgjzcz2TOU5v8t/CdaXJh6yT8fUh29ZXcDY7K83j8YLsI/OoESErP7VeGyj6z
+	51ewafUg==;
+Received: from [203.159.80.191] (port=51891 helo=jagdambamotors.com)
+	by ded5603.inmotionhosting.com with esmtpsa  (TLS1.2) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+	(Exim 4.94.2)
+	(envelope-from <kamal.jaisi@jagdambamotors.com>)
+	id 1lmMPY-0003QU-Dm
+	for lizard@digilicious.com; Thu, 27 May 2021 13:15:17 -0700
+Reply-To: researchmanager@lab-researchpfizer.com
+From: "Juliet "<kamal.jaisi@jagdambamotors.com>
+To: lizard@digilicious.com
+Subject: READ CAREFULLY
+Date: 27 May 2021 13:15:16 -0700
+Message-ID: <20210527131516.9C09E3D46B61888B@jagdambamotors.com>
+MIME-Version: 1.0
+Content-Type: text/html;
+	charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-OutGoing-Spam-Status: No, score=-0.4
+X-AntiAbuse: This header was added to track abuse, please include it with any abuse report
+X-AntiAbuse: Primary Hostname - ded5603.inmotionhosting.com
+X-AntiAbuse: Original Domain - digilicious.com
+X-AntiAbuse: Originator/Caller UID/GID - [47 12] / [47 12]
+X-AntiAbuse: Sender Address Domain - jagdambamotors.com
+X-Get-Message-Sender-Via: ded5603.inmotionhosting.com: authenticated_id: kelly.kazika@zrl.com.zm
+X-Authenticated-Sender: ded5603.inmotionhosting.com: kelly.kazika@zrl.com.zm
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.=
+w3.org/TR/html4/loose.dtd">
+
+<HTML><HEAD>
+<META name=3DGENERATOR content=3D"MSHTML 11.00.9600.19003"></HEAD>
+<body style=3D"MARGIN: 0.5em">Hello lizard<BR><BR>I have a business proposi=
+tion for you&nbsp;&nbsp; as a bidding is going on in the<BR>company i work =
+=2Ewhich I am sure will interest you&nbsp; and you will be<BR>intrigued. to=
+ make more profit during this Pandemic<BR><BR>I hope to receive your reply =
+if you will be interested&nbsp; please kindly write to me on my direct emai=
+l address as stated below for quick response from me <BR><BR>
+<SPAN style=3D"FONT-SIZE: 13px; FONT-FAMILY: Verdana, Geneva, sans-serif; W=
+HITE-SPACE: normal; WORD-SPACING: 0px; TEXT-TRANSFORM: none; FLOAT: none; F=
+ONT-WEIGHT: 400; COLOR: rgb(44,54,58); FONT-STYLE: normal; ORPHANS: 2; WIDO=
+WS: 2; DISPLAY: inline !important; LETTER-SPACING: normal; BACKGROUND-COLOR=
+: rgb(255,255,255); TEXT-INDENT: 0px; font-variant-ligatures: normal; font-=
+variant-caps: normal; -webkit-text-stroke-width: 0px; text-decoration-thick=
+ness: initial; text-decoration-style: initial;=20
+text-decoration-color: initial">Email me on:&nbsp;</SPAN>
+<A style=3D"BOX-SIZING: border-box; FONT-SIZE: 13px; FONT-FAMILY: Verdana, =
+Geneva, sans-serif; BORDER-TOP-COLOR: rgb(238,238,238); WHITE-SPACE: normal=
+; WORD-SPACING: 0px; TEXT-TRANSFORM: none; BORDER-LEFT-COLOR: rgb(238,238,2=
+38); FONT-WEIGHT: 400; COLOR: rgb(0,118,198); FONT-STYLE: normal; BORDER-BO=
+TTOM-COLOR: rgb(238,238,238); ORPHANS: 2; WIDOWS: 2; BORDER-RIGHT-COLOR: rg=
+b(238,238,238); LETTER-SPACING: normal; BACKGROUND-COLOR: transparent; TEXT=
+-INDENT: 0px; font-variant-ligatures: normal;=20
+font-variant-caps: normal; -webkit-text-stroke-width: 0px; text-decoration-=
+line: none" href=3D"mailto:researchmanager@lab-researchpfizer.com" rel=3Dno=
+referrer target=3D_blank>researchmanager@lab-<WBR>researchpfizer.com</A><BR=
+><BR>Research Manager<BR>Harrison Barclay Juliet<BR>
+<SPAN style=3D"FONT-SIZE: 13px; FONT-FAMILY: Verdana, Geneva, sans-serif; W=
+HITE-SPACE: normal; WORD-SPACING: 0px; TEXT-TRANSFORM: none; FLOAT: none; F=
+ONT-WEIGHT: 400; COLOR: rgb(44,54,58); FONT-STYLE: normal; ORPHANS: 2; WIDO=
+WS: 2; DISPLAY: inline !important; LETTER-SPACING: normal; BACKGROUND-COLOR=
+: rgb(255,255,255); TEXT-INDENT: 0px; font-variant-ligatures: normal; font-=
+variant-caps: normal; -webkit-text-stroke-width: 0px; text-decoration-thick=
+ness: initial; text-decoration-style: initial;=20
+text-decoration-color: initial">Email:&nbsp;</SPAN>
+<A style=3D"BOX-SIZING: border-box; FONT-SIZE: 13px; FONT-FAMILY: Verdana, =
+Geneva, sans-serif; BORDER-TOP-COLOR: rgb(238,238,238); WHITE-SPACE: normal=
+; WORD-SPACING: 0px; TEXT-TRANSFORM: none; BORDER-LEFT-COLOR: rgb(238,238,2=
+38); FONT-WEIGHT: 400; COLOR: rgb(0,118,198); FONT-STYLE: normal; BORDER-BO=
+TTOM-COLOR: rgb(238,238,238); ORPHANS: 2; WIDOWS: 2; BORDER-RIGHT-COLOR: rg=
+b(238,238,238); LETTER-SPACING: normal; BACKGROUND-COLOR: transparent; TEXT=
+-INDENT: 0px; font-variant-ligatures: normal;=20
+font-variant-caps: normal; -webkit-text-stroke-width: 0px; text-decoration-=
+line: none" href=3D"mailto:researchmanager@lab-researchpfizer.com" rel=3Dno=
+referrer target=3D_blank>researchmanager@lab-<WBR>researchpfizer.com</A><BR=
+>
+<DIV><BR style=3D"FONT-SIZE: small; FONT-FAMILY: Arial, Helvetica, sans-ser=
+if; WHITE-SPACE: normal; WORD-SPACING: 0px; TEXT-TRANSFORM: none; FONT-WEIG=
+HT: 400; COLOR: rgb(80,0,80); FONT-STYLE: normal; ORPHANS: 2; WIDOWS: 2; LE=
+TTER-SPACING: normal; BACKGROUND-COLOR: rgb(255,255,255); TEXT-INDENT: 0px;=
+ font-variant-ligatures: normal; font-variant-caps: normal; -webkit-text-st=
+roke-width: 0px; text-decoration-thickness: initial; text-decoration-style:=
+ initial; text-decoration-color: initial"></DIV>
+</BODY></HTML>`.replace(/\n/g, "\r\n") + "\r\n"
+    ); // CRLF line endings
+
+    const msg = new Message(msg_text, MessageType.part);
+    msg.decode();
+
+    expect(msg.hdr_idx["mime-version"][0].parsed);
+    expect(msg.hdr_idx["content-type"][0].parsed);
+    expect(msg.hdr_idx["content-type"][0].parsed.type).toEqual("text");
+    expect(msg.hdr_idx["content-type"][0].parsed.subtype).toEqual("html");
+    expect(msg.hdr_idx["received"][0].parsed.tokens.from).toMatch(/ded5603\.inmotionhosting\.com/);
+    expect(msg.hdr_idx["received"][0].parsed.tokens.by).toEqual("digilicious.com");
+    expect(msg.hdr_idx["received"][0].parsed.tokens.with).toEqual("ESMTPS");
+    expect(msg.hdr_idx["received"][0].parsed.tokens.id).toEqual("7gemj4fynnah1");
+    expect(msg.hdr_idx["received"][0].parsed.tokens.for).toMatch(/<lizard@digilicious.com>/);
+  });
+});
+
 describe("RFC-2046 5.1.1. Common Syntax", () => {
   it("multipart, simple boundary", () => {
     const msg_text = Buffer.from(
