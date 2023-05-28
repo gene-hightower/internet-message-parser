@@ -17,7 +17,10 @@ const x_hmxmroriginalrecipient_hdr_name = "X-HmXmrOriginalRecipient";
 const received_hdr_name = "Received";
 
 function proc_data(data: Buffer, filepath: string) {
-  let msg = new Message(Buffer.from(`${x_hmxmroriginalrecipient_hdr_name}: <unknown@duck.com>\r\n\r\n\r\n`), MessageType.part);
+  let msg = new Message(
+    Buffer.from(`${x_hmxmroriginalrecipient_hdr_name}: <unknown@duck.com>\r\n\r\n\r\n`),
+    MessageType.part
+  );
 
   try {
     try {
@@ -149,7 +152,19 @@ function proc(filepath: string) {
       }
     }
     if (!found) {
-      console.log(`#### untouched: ${filepath}`);
+      if (
+        msg.hdr_idx["from"] === "DuckDuckGo <dax@mailer.spreadprivacy.com>" &&
+        msg.hdr_idx["subject"].match(/\[ DuckDuckGo Privacy Weekly \] For /)
+      ) {
+        // console.log(`#### privacy weekly: ${filepath}`);
+      } else if (
+        msg.hdr_idx["from"] === "DuckDuckGo <support@duck.com>" &&
+        msg.hdr_idx["subject"].match(/Your DuckDuckGo One-time Passphrase/)
+      ) {
+        // console.log(`#### OTP: ${filepath}`);
+      } else {
+        console.log(`#### untouched: ${filepath}`);
+      }
     }
 
     total_messages += 1;
@@ -168,7 +183,7 @@ let i = 0;
 console.log(`=== top ${N} overall ===`);
 for (const complainer of complainers_sorted) {
   if (by_complainer[complainer] < 5) break;
-    console.log(complainer, Array(40 - complainer.length).join(" "), by_complainer[complainer]);
+  console.log(complainer, Array(40 - complainer.length).join(" "), by_complainer[complainer]);
   if (++i === N) break;
 }
 console.log();
