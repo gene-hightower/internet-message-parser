@@ -152,14 +152,16 @@ function proc(filepath: string) {
       }
     }
     if (!found) {
+      const from = msg.hdr_idx["from"];
+      const subj = msg.hdr_idx["subject"];
       if (
-        msg.hdr_idx["from"][0]?.parsed?.value === "DuckDuckGo <dax@mailer.spreadprivacy.com>" &&
-        msg.hdr_idx["subject"][0]?.parsed?.value?.match(/\[ DuckDuckGo Privacy Weekly \] For /)
+        from && from[0]?.parsed?.value === "DuckDuckGo <dax@mailer.spreadprivacy.com>" &&
+        subj && subj[0]?.parsed?.value?.match(/\[ DuckDuckGo Privacy Weekly \] For /)
       ) {
         // console.log(`#### privacy weekly: ${filepath}`);
       } else if (
-        msg.hdr_idx["from"][0]?.parsed?.value === "DuckDuckGo <support@duck.com>" &&
-        msg.hdr_idx["subject"][0]?.parsed?.value?.match(/Your DuckDuckGo One-time Passphrase/)
+        from && from[0]?.parsed?.value === "DuckDuckGo <support@duck.com>" &&
+        subj && subj[0]?.parsed?.value?.match(/Your DuckDuckGo One-time Passphrase/)
       ) {
         // console.log(`#### OTP: ${filepath}`);
       } else {
