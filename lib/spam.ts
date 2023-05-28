@@ -4,11 +4,14 @@ const path = require("path");
 import { Message, MessageType, is_structured_header } from "./Message";
 import { SyntaxError, parse } from "./message-parser";
 
-// const dir = "/home/gene/Maildir/.JunkDuck/cur";
+const dir = "/home/gene/Maildir/.JunkDuck/cur";
 // const dir = "/mnt/ephemeral/jmrp-emails";
-const dir = "/tmp/Maildir/tmp";
+// const dir = "/tmp/Maildir/tmp";
 
 let total_messages = 0;
+let privacy_weekly = 0;
+let otp = 0;
+let start_using = 0;
 
 let by_day: Record<number, number> = {};
 let by_complainer: Record<string, number> = {};
@@ -157,26 +160,38 @@ function proc(filepath: string) {
       const subj = msg.hdr_idx["subject"];
       if (
         from &&
-        from[0]?.value?.match(/DuckDuckGo \<dax@mailer\.spreadprivacy\.com\>/) &&
+        from[0]?.value === "DuckDuckGo <dax@mailer.spreadprivacy.com>" &&
         subj &&
-        subj[0]?.value?.match(/\[ DuckDuckGo Privacy Weekly \] For /)
+        subj[0]?.value?.match(/\[ DuckDuckGo Privacy Weekly \] For .+/)
       ) {
+        privacy_weekly += 1;
       } else if (
         from &&
-        from[0]?.value?.match(/DuckDuckGo \<support@duck.com\>/) &&
+        from[0]?.value === "DuckDuckGo <support@duck.com>" &&
         subj &&
-        subj[0]?.value?.match(/Your DuckDuckGo One-time Passphrase/)
+        subj[0]?.value === "Your DuckDuckGo One-time Passphrase"
       ) {
+        otp += 1;
       } else if (
         from &&
-        from[0]?.value?.match(/DuckDuckGo \<support@duck.com\>/) &&
+        from[0]?.value === "DuckDuckGo <support@goduckgo.com>" &&
         subj &&
-        subj[0]?.value?.match(/Start using your Duck Address/)
+        subj[0]?.value === "Start using your Duck Address"
       ) {
+        start_using += 1;
+      } else if (
+        from &&
+        from[0]?.value === "DuckDuckGo <support@duck.com>" &&
+        subj &&
+        subj[0]?.value === "Start using your Duck Address"
+      ) {
+        start_using += 1;
       } else {
-        console.log(`#### from: `, from);
-        console.log(`#### subj: `, subj);
-        console.log(`#### untouched: ${filepath}`);
+        if (from !== undefined && subj !== undefined) {
+          console.log(`#### from: `, from);
+          console.log(`#### subj: `, subj);
+          console.log(`#### untouched: ${filepath}`);
+        }
       }
     }
 
@@ -228,3 +243,6 @@ for (const day of Object.keys(by_day_by_complainer)) {
 }
 
 console.log(`${total_messages} total messages processed`);
+console.log(`${otp} One Time password`);
+console.log(`${privacy_weekly} Privacy Weekly`);
+console.log(`${start_using} Start using your Duck Address `);
