@@ -158,7 +158,6 @@ function proc(filepath: string) {
       if (
         from && from[0]?.value?.match(/DuckDuckGo \<dax@mailer\.spreadprivacy\.com\>/) &&
         subj && subj[0]?.value?.match(/\[ DuckDuckGo Privacy Weekly \] For /)
-      ) {
       } else if (
         from && from[0]?.value?.match(/DuckDuckGo \<support@duck.com\>/) &&
         subj && subj[0]?.value?.match(/Your DuckDuckGo One-time Passphrase/)
