@@ -153,13 +153,13 @@ function proc(filepath: string) {
     }
     if (!found) {
       if (
-        msg.hdr_idx["from"] === "DuckDuckGo <dax@mailer.spreadprivacy.com>" &&
-        msg.hdr_idx["subject"].match(/\[ DuckDuckGo Privacy Weekly \] For /)
+        msg.hdr_idx["from"][0]?.parsed?.value === "DuckDuckGo <dax@mailer.spreadprivacy.com>" &&
+        msg.hdr_idx["subject"][0]?.parsed?.value?.match(/\[ DuckDuckGo Privacy Weekly \] For /)
       ) {
         // console.log(`#### privacy weekly: ${filepath}`);
       } else if (
-        msg.hdr_idx["from"] === "DuckDuckGo <support@duck.com>" &&
-        msg.hdr_idx["subject"].match(/Your DuckDuckGo One-time Passphrase/)
+        msg.hdr_idx["from"][0]?.parsed?.value === "DuckDuckGo <support@duck.com>" &&
+        msg.hdr_idx["subject"][0]?.parsed?.value?.match(/Your DuckDuckGo One-time Passphrase/)
       ) {
         // console.log(`#### OTP: ${filepath}`);
       } else {
