@@ -4,6 +4,7 @@ const path = require("path");
 import { Message, MessageType, is_structured_header } from "./Message";
 import { SyntaxError, parse } from "./message-parser";
 
+// const dir = "/home/gene/Maildir/.JunkDuck/cur";
 const dir = "/mnt/ephemeral/jmrp-emails";
 
 let total_messages = 0;
@@ -12,10 +13,11 @@ let by_day: Record<number, number> = {};
 let by_complainer: Record<string, number> = {};
 let by_day_by_complainer: Record<number, Record<string, number>> = {};
 
-const x_hmxmroriginalrecipient = "X-HmXmrOriginalRecipient";
+const x_hmxmroriginalrecipient_hdr_name = "X-HmXmrOriginalRecipient";
+const received_hdr_name = "Received";
 
 function proc_data(data: Buffer, filepath: string) {
-  let msg = new Message(Buffer.from(`${x_hmxmroriginalrecipient}: <unknown@duck.com>\r\n\r\n\r\n`), MessageType.part);
+  let msg = new Message(Buffer.from(`${x_hmxmroriginalrecipient_hdr_name}: <unknown@duck.com>\r\n\r\n\r\n`), MessageType.part);
 
   try {
     try {
@@ -50,7 +52,6 @@ function proc_data(data: Buffer, filepath: string) {
     for (const hdr of msg.headers) {
       const hdr_name = hdr.name.toLowerCase();
       if (!is_structured_header(hdr_name)) continue;
-      if (ignore.includes(hdr_name)) continue;
       if (ignore_if_empty.includes(hdr_name) && !/[^ \t\r\n]/.test(hdr.value)) continue;
       if (!hdr.parsed) {
         // Fix the ones we can:
@@ -70,9 +71,11 @@ function proc_data(data: Buffer, filepath: string) {
             }
         }
 
-        console.error(`###### file: ${filepath}`);
-        console.error(`###### parse failed for: ${hdr.name}`);
-        console.error(hdr);
+        if (!ignore.includes(hdr_name)) {
+          console.error(`###### file: ${filepath}`);
+          console.error(`###### parse failed for: ${hdr.name}`);
+          console.error(hdr);
+        }
       }
     }
   } catch (e) {
@@ -114,7 +117,7 @@ function proc(filepath: string) {
       by_day[day] = 1;
     }
 
-    const complainer_hdr = msg.hdr_idx[x_hmxmroriginalrecipient.toLowerCase()];
+    const complainer_hdr = msg.hdr_idx[x_hmxmroriginalrecipient_hdr_name.toLowerCase()];
     if (complainer_hdr && complainer_hdr[0].parsed) {
       const complainer = complainer_hdr[0].value;
       if (by_complainer[complainer]) {
@@ -133,6 +136,20 @@ function proc(filepath: string) {
         const x: Record<string, number> = { [complainer]: 1 };
         by_day_by_complainer[day] = x;
       }
+    }
+    // have we found our own Received: header?
+    var found = false;
+    const received_hdr = msg.hdr_idx[received_hdr_name.toLowerCase()];
+    if (received_hdr) {
+      for (const rec of received_hdr) {
+        const by = rec?.parsed?.tokens?.by;
+        if (by && by.match(/smtp-inbound1.duck.com \(Haraka\/\d.\d+.\d+\)/)) {
+          found = true;
+        }
+      }
+    }
+    if (!found) {
+      console.log(`#### untouched: ${filepath}`);
     }
 
     total_messages += 1;
