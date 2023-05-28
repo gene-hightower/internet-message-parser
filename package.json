@@ -7,10 +7,10 @@
   "scripts": {
     "format": "prettier --write lib/",
     "peggy": "peggy --plugin ./node_modules/ts-pegjs/src/tspegjs.js --cache --allowed-start-rules field -o lib/message-parser.ts lib/message-parser.pegjs",
-    "build": "tsc",
+    "compile": "tsc",
     "clean": "rm -rf coverage node_modules lib/grammar.ts dist",
     "coverage": "jest --collectCoverage -- dist/test/*.test.js",
-    "prepare": "npm run peggy && npm run build",
+    "build": "npm run peggy && npm run compile",
     "test": "jest dist/test/*.test.js"
   },
   "engines": {
