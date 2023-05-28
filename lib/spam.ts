@@ -156,14 +156,22 @@ function proc(filepath: string) {
       const from = msg.hdr_idx["from"];
       const subj = msg.hdr_idx["subject"];
       if (
-        from && from[0]?.value?.match(/DuckDuckGo \<dax@mailer\.spreadprivacy\.com\>/) &&
-        subj && subj[0]?.value?.match(/\[ DuckDuckGo Privacy Weekly \] For /)
+        from &&
+        from[0]?.value?.match(/DuckDuckGo \<dax@mailer\.spreadprivacy\.com\>/) &&
+        subj &&
+        subj[0]?.value?.match(/\[ DuckDuckGo Privacy Weekly \] For /)
+      ) {
       } else if (
-        from && from[0]?.value?.match(/DuckDuckGo \<support@duck.com\>/) &&
-        subj && subj[0]?.value?.match(/Your DuckDuckGo One-time Passphrase/)
+        from &&
+        from[0]?.value?.match(/DuckDuckGo \<support@duck.com\>/) &&
+        subj &&
+        subj[0]?.value?.match(/Your DuckDuckGo One-time Passphrase/)
+      ) {
       } else if (
-        from && from[0]?.value?.match(/DuckDuckGo \<support@duck.com\>/) &&
-        subj && subj[0]?.value?.match(/Start using your Duck Address/)
+        from &&
+        from[0]?.value?.match(/DuckDuckGo \<support@duck.com\>/) &&
+        subj &&
+        subj[0]?.value?.match(/Start using your Duck Address/)
       ) {
       } else {
         console.log(`#### from: `, from);
