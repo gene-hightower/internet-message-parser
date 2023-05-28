@@ -5,7 +5,8 @@ import { Message, MessageType, is_structured_header } from "./Message";
 import { SyntaxError, parse } from "./message-parser";
 
 // const dir = "/home/gene/Maildir/.JunkDuck/cur";
-const dir = "/mnt/ephemeral/jmrp-emails";
+// const dir = "/mnt/ephemeral/jmrp-emails";
+const dir = "/tmp/Maildir/tmp";
 
 let total_messages = 0;
 
@@ -155,16 +156,19 @@ function proc(filepath: string) {
       const from = msg.hdr_idx["from"];
       const subj = msg.hdr_idx["subject"];
       if (
-        from && from[0]?.parsed?.value?.match(/DuckDuckGo \<dax@mailer\.spreadprivacy\.com\>/) &&
-        subj && subj[0]?.parsed?.value?.match(/\[ DuckDuckGo Privacy Weekly \] For /)
+        from && from[0]?.value?.match(/DuckDuckGo \<dax@mailer\.spreadprivacy\.com\>/) &&
+        subj && subj[0]?.value?.match(/\[ DuckDuckGo Privacy Weekly \] For /)
       ) {
-        // console.log(`#### privacy weekly: ${filepath}`);
       } else if (
-        from && from[0]?.parsed?.value?.match(/DuckDuckGo \<support@duck.com\>/) &&
-        subj && subj[0]?.parsed?.value?.match(/Your DuckDuckGo One-time Passphrase/)
+        from && from[0]?.value?.match(/DuckDuckGo \<support@duck.com\>/) &&
+        subj && subj[0]?.value?.match(/Your DuckDuckGo One-time Passphrase/)
+      } else if (
+        from && from[0]?.value?.match(/DuckDuckGo \<support@duck.com\>/) &&
+        subj && subj[0]?.value?.match(/Start using your Duck Address/)
       ) {
-        // console.log(`#### OTP: ${filepath}`);
       } else {
+        console.log(`#### from: `, from);
+        console.log(`#### subj: `, subj);
         console.log(`#### untouched: ${filepath}`);
       }
     }
