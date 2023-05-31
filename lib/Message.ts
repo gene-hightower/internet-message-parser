@@ -165,7 +165,8 @@ export class Message {
     this._coarse_chop();
     this._index_headers();
     this._parse_structured_headers();
-    this._sanity_check_headers();
+    // Make this an optional step.
+    // this._sanity_check_headers();
     this._find_parts();
   }
 
