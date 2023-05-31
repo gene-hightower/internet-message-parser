@@ -13,5 +13,5 @@ jobs:
         with:
           node-version: "14.x"
       - run: npm ci
-      - run: npm run prepare --if-present
+      - run: npm run build --if-present
       - run: npm test
