@@ -133,6 +133,7 @@ describe("ill formed address-list", () => {
     const msg_text = Buffer.from(`From: foo foo@example.com\r\n`);
     try {
       const msg = new Message(msg_text, MessageType.part);
+      msg.sanity_check_headers()
     } catch (e) {
       const ex = e as Error;
       expect(ex.message).toEqual("syntax error in From: header #1 (From: foo foo@example.com)");
@@ -145,6 +146,7 @@ describe("ill formed address-list", () => {
     const msg_text = Buffer.from(`From: (nothing here)\r\n`);
     try {
       const msg = new Message(msg_text, MessageType.part);
+      msg.sanity_check_headers()
     } catch (e) {
       const ex = e as Error;
       expect(ex.message).toEqual("syntax error in From: header #1 (From: (nothing here))");
@@ -157,6 +159,7 @@ describe("ill formed address-list", () => {
     const msg_text = Buffer.from(`From: foo@example.com (bar) baz\r\n`);
     try {
       const msg = new Message(msg_text, MessageType.part);
+      msg.sanity_check_headers()
     } catch (e) {
       const ex = e as Error;
       expect(ex.message).toEqual("syntax error in From: header #1 (From: foo@example.com (bar) baz)");
@@ -169,6 +172,7 @@ describe("ill formed address-list", () => {
     const msg_text = Buffer.from(`From: Foo\r\n`);
     try {
       const msg = new Message(msg_text, MessageType.part);
+      msg.sanity_check_headers()
     } catch (e) {
       const ex = e as Error;
       expect(ex.message).toEqual("syntax error in From: header #1 (From: Foo)");
@@ -181,6 +185,7 @@ describe("ill formed address-list", () => {
     const msg_text = Buffer.from(`From: O'A\r\n`);
     try {
       const msg = new Message(msg_text, MessageType.part);
+      msg.sanity_check_headers()
     } catch (e) {
       const ex = e as Error;
       expect(ex.message).toEqual(`syntax error in From: header #1 (From: O'A`);
@@ -193,6 +198,7 @@ describe("ill formed address-list", () => {
     const msg_text = Buffer.from(`From: FirstName Surname-WithADash :: Company <name@example.com>\r\n`);
     try {
       const msg = new Message(msg_text, MessageType.part);
+      msg.sanity_check_headers()
     } catch (e) {
       const ex = e as Error;
       expect(ex.message).toEqual(

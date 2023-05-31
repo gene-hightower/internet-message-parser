@@ -1,0 +1,3 @@
+	2023-05-31   Gene Hightower   <gene@digilicious.com>
+
+	* Make sanity_check_headers a public method, and don't call by default in ctor.

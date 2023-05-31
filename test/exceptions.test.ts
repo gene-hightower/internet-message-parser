@@ -33,8 +33,9 @@ describe("Parse failures", () => {
     `.replace(/\n/g, "\r\n") + "\r\n"
     ); // CRLF line endings
 
+    const msg = new Message(msg_text);
     try {
-      const msg = new Message(msg_text);
+      msg.sanity_check_headers()
     } catch (e) {
       const ex = e as Error;
       expect(ex.message).toEqual(
@@ -54,8 +55,9 @@ describe("Parse failures", () => {
     `.replace(/\n/g, "\r\n") + "\r\n"
     ); // CRLF line endings
 
+    const msg = new Message(msg_text);
     try {
-      const msg = new Message(msg_text);
+      msg.sanity_check_headers()
     } catch (e) {
       const ex = e as Error;
       expect(ex.message).toEqual("missing From: header");
@@ -75,8 +77,9 @@ describe("Parse failures", () => {
     `.replace(/\n/g, "\r\n") + "\r\n"
     ); // CRLF line endings
 
+    const msg = new Message(msg_text);
     try {
-      const msg = new Message(msg_text);
+      msg.sanity_check_headers()
     } catch (e) {
       const ex = e as Error;
       expect(ex.message).toEqual("too many From: headers");
@@ -94,8 +97,9 @@ describe("Parse failures", () => {
     `.replace(/\n/g, "\r\n") + "\r\n"
     ); // CRLF line endings
 
+    const msg = new Message(msg_text);
     try {
-      const msg = new Message(msg_text);
+      msg.sanity_check_headers()
     } catch (e) {
       const ex = e as Error;
       expect(ex.message).toEqual("must have a recipient; at least one of To:, Cc:, or Bcc:");
@@ -114,8 +118,9 @@ describe("Parse failures", () => {
     `.replace(/\n/g, "\r\n") + "\r\n"
     ); // CRLF line endings
 
+    const msg = new Message(msg_text);
     try {
-      const msg = new Message(msg_text);
+      msg.sanity_check_headers()
     } catch (e) {
       const ex = e as Error;
       expect(ex.message).toEqual("must have Sender: if more than one address in From:");
@@ -139,6 +144,7 @@ describe("Parse failures", () => {
     ); // CRLF line endings
 
     const msg = new Message(msg_text);
+    msg.sanity_check_headers()
     try {
       msg.decode();
     } catch (e) {
@@ -412,9 +418,10 @@ describe("Parse failures", () => {
         Message body.
     `.replace(/\n/g, "\r\n") + "\r\n"
     ); // CRLF line endings
+    const msg = new Message(msg_text);
+    msg.decode();
     try {
-      const msg = new Message(msg_text);
-      msg.decode();
+      msg.sanity_check_headers()
     } catch (e) {
       const ex = e as Error;
       expect(ex.message).toEqual(

@@ -262,7 +262,7 @@ export class Message {
     }
   }
 
-  _sanity_check_headers() {
+  sanity_check_headers() {
     if (this.type === MessageType.full) {
       // Required fields for full messages only.
       for (const fld of required) {
