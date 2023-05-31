@@ -294,6 +294,10 @@ describe("RFC-5322 A.4. Messages with Trace Fields", () => {
            id ABC12345
            for <mary@example.net>;  21 Nov 1997 10:05:43 -0600
         Received: from node.example by x.y.test; 21 Nov 1997 10:01:22 -0600
+        Received: from wezooz.be (116-204-182-119.static.bangmod-idc.com [116.204.182.119])
+        	by smtp-inbound1.duck.com (Haraka/2.8.28) with ESMTP id 7F1159DF-5578-4AF3-A774-5B6FF9AC6C7B.2
+        	envelopefrom <>;
+        	Sun, 14 May 2023 07:12:56 -0400
         From: John Doe <jdoe@node.example>
         To: Mary Smith <mary@example.net>
         Subject: Saying Hello
@@ -308,8 +312,9 @@ describe("RFC-5322 A.4. Messages with Trace Fields", () => {
     const msg = new Message(msg_text);
     msg.decode();
 
-    expect(msg.hdr_idx["received"][0].parsed);
-    expect(msg.hdr_idx["received"][1].parsed);
+    expect(msg.hdr_idx["received"][0].parsed).not.toBeNull();
+    expect(msg.hdr_idx["received"][1].parsed).not.toBeNull();
+    expect(msg.hdr_idx["received"][2].parsed).not.toBeNull();
 
     expect(msg.hdr_idx["from"][0].parsed);
     expect(msg.hdr_idx["to"][0].parsed);
