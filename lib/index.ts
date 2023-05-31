@@ -1,2 +1,2 @@
 export * from "./Message";
-export * from "./message-parser"
+export * from "./message-parser";
