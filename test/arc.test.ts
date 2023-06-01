@@ -96,16 +96,17 @@ describe("RFC-8617", () => {
     expect(results[0].method).toBe("spf");
     expect(results[0].result).toBe("fail");
     expect(results[0].reason).toBe(null);
-    expect(results[0].prop[0].type).toBe("smtp");
+
+    expect(results[0].prop[0].ptype).toBe("smtp");
     expect(results[0].prop[0].property).toBe("from");
-    expect(results[0].prop[0].value).toBe("jqd@d1.example");
+    expect(results[0].prop[0].pvalue).toBe("jqd@d1.example");
 
     expect(results[1].method).toBe("dkim");
     expect(results[1].result).toBe("fail");
     expect(results[1].reason).toBe(null);
-    expect(results[1].prop[0].type).toBe("header");
+    expect(results[1].prop[0].ptype).toBe("header");
     expect(results[1].prop[0].property).toBe("i");
-    expect(results[1].prop[0].value).toBe("@d1.example");
+    expect(results[1].prop[0].pvalue).toBe("@d1.example");
 
     expect(results[2].method).toBe("dmarc");
     expect(results[2].result).toBe("fail");
@@ -125,16 +126,16 @@ describe("RFC-8617", () => {
     expect(results[0].method).toBe("spf");
     expect(results[0].result).toBe("fail");
     expect(results[0].reason).toBe(null);
-    expect(results[0].prop[0].type).toBe("smtp");
+    expect(results[0].prop[0].ptype).toBe("smtp");
     expect(results[0].prop[0].property).toBe("from");
-    expect(results[0].prop[0].value).toBe("jqd@d1.example");
+    expect(results[0].prop[0].pvalue).toBe("jqd@d1.example");
 
     expect(results[1].method).toBe("dkim");
     expect(results[1].result).toBe("fail");
     expect(results[1].reason).toBe(null);
-    expect(results[1].prop[0].type).toBe("header");
+    expect(results[1].prop[0].ptype).toBe("header");
     expect(results[1].prop[0].property).toBe("i");
-    expect(results[1].prop[0].value).toBe("@example.org");
+    expect(results[1].prop[0].pvalue).toBe("@example.org");
 
     expect(results[2].method).toBe("dmarc");
     expect(results[2].result).toBe("fail");
@@ -154,16 +155,16 @@ describe("RFC-8617", () => {
     expect(results[0].method).toBe("spf");
     expect(results[0].result).toBe("pass");
     expect(results[0].reason).toBe(null);
-    expect(results[0].prop[0].type).toBe("smtp");
+    expect(results[0].prop[0].ptype).toBe("smtp");
     expect(results[0].prop[0].property).toBe("mfrom");
-    expect(results[0].prop[0].value).toBe("jqd@d1.example");
+    expect(results[0].prop[0].pvalue).toBe("jqd@d1.example");
 
     expect(results[1].method).toBe("dkim");
     expect(results[1].result).toBe("pass");
     expect(results[1].reason).toBe(null);
-    expect(results[1].prop[0].type).toBe("header");
+    expect(results[1].prop[0].ptype).toBe("header");
     expect(results[1].prop[0].property).toBe("i");
-    expect(results[1].prop[0].value).toBe("@d1.example");
+    expect(results[1].prop[0].pvalue).toBe("@d1.example");
 
     expect(results[2].method).toBe("dmarc");
     expect(results[2].result).toBe("pass");
