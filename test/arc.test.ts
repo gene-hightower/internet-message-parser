@@ -362,9 +362,22 @@ https://na01.safelinks.protection.outlook.com/?url=https%3A%2F%2Ftrue-pills.com%
     expect(msg.hdr_idx["arc-message-signature"][1].parsed).not.toBeNull();
     expect(msg.hdr_idx["arc-seal"][1].parsed).not.toBeNull();
 
-    let results = aar[0].parsed[2].payload.results;
+    expect(aar[1].parsed[2].instance).toBe(1);
+    expect(aar[1].parsed[2].payload.id).toBe("eun-prod-email-smtp5.duckduckgo.com");
 
-    // console.log(aar);
-    // console.log(results);
+    let results = aar[1].parsed[2].payload.results;
+
+    expect(results[0].method).toBe("dkim");
+    expect(results[0].result).toBe("none");
+
+    expect(results[1].method).toBe("spf");
+    expect(results[1].result).toBe("none");
+
+    expect(results[2].method).toBe("dmarc");
+    expect(results[2].result).toBe("none");
+
+    expect(results[3].method).toBe("bimi");
+    expect(results[3].result).toBe("skipped");
+
   });
 });
