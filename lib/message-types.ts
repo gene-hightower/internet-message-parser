@@ -36,5 +36,5 @@ export class AuthResPayload {
 }
 
 export class ARCInfo {
-  constructor(public instance: Number, public payload: AuthResPayload) {}
+  constructor(public instance: number, public payload: AuthResPayload) {}
 }

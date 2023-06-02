@@ -1,7 +1,7 @@
-	2023-06-01   Gene Hightower   <gene@digilicious.com>
+2023-06-01   Gene Hightower   <gene@digilicious.com>
 
 	* 3.0.0 Class types for ARCInfo and all the types used therein
 
-	2023-05-31   Gene Hightower   <gene@digilicious.com>
+2023-05-31   Gene Hightower   <gene@digilicious.com>
 
 	* 2.0.0 Make sanity_check_headers a public method, and don't call by default in ctor.
