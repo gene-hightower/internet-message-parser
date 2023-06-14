@@ -40,7 +40,7 @@
     "@babel/core": "^7.16.7",
     "@babel/preset-env": "^7.16.8",
     "@types/jest": "^26.0.20",
-    "@types/node": "^14.14.33",
+    "@types/node": "^14.18.51",
     "babel-jest": "^27.4.6",
     "eslint": "*",
     "jest": "^26.6.3",
