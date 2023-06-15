@@ -1,7 +1,7 @@
 import dedent from "ts-dedent";
 
 import { Message, MessageType } from "../lib/Message";
-import { URL } from 'url';
+import { URL } from "url";
 
 describe("List Commands RFC-2369 ", () => {
   it("Simple parse test", () => {
@@ -57,6 +57,7 @@ describe("List Commands RFC-2369 ", () => {
              To: infoworld@digilicious.com
              List-Unsubscribe:
              	<mailto:mail.fskulktmheyrvinqxnzui@edt.cio.com?subject=Unsubscribe>, <https://foo.bar.baz/zzz-aaa>, <file:///tmp>
+             List-Unsubscribe: <mailto:unsubscribe@post.pinterest.com?subject=unsubscribe:tSmvKNfiPGld1vBYH2gHoC29CPLk-mWdyekB6Gwl4ioa~|eyAicmNwdF90byI6ICJ2Z3BldGVAZHVjay5jb20iLCAidGVuYW50X2lkIjogInBpbnRlcmVzdCIsICJjdXN0b21lcl9pZCI6ICIxIiwgInN1YmFjY291bnRfaWQiOiAiMCIsICJtZXNzYWdlX2lkIjogIjY0NjI3MjJiNjU2NDU0YjQ1ODUyIiB9>
              From: CIO Events <events@edt.cio.com>
              Date: Tue, 13 Jun 2023 19:17:23 +0100
              MIME-Version: 1.0
@@ -360,9 +361,15 @@ describe("List Commands RFC-2369 ", () => {
     msg.decode();
 
     const uris = msg.hdr_idx["list-unsubscribe"][0].parsed;
-
     expect(uris[0]).toEqual(new URL("mailto:mail.fskulktmheyrvinqxnzui@edt.cio.com?subject=Unsubscribe"));
     expect(uris[1]).toEqual(new URL("https://foo.bar.baz/zzz-aaa"));
     expect(uris[2]).toEqual(new URL("file:///tmp"));
+
+    const uris_1 = msg.hdr_idx["list-unsubscribe"][1].parsed;
+    expect(uris_1[0]).toEqual(
+      new URL(
+        "mailto:unsubscribe@post.pinterest.com?subject=unsubscribe:tSmvKNfiPGld1vBYH2gHoC29CPLk-mWdyekB6Gwl4ioa~|eyAicmNwdF90byI6ICJ2Z3BldGVAZHVjay5jb20iLCAidGVuYW50X2lkIjogInBpbnRlcmVzdCIsICJjdXN0b21lcl9pZCI6ICIxIiwgInN1YmFjY291bnRfaWQiOiAiMCIsICJtZXNzYWdlX2lkIjogIjY0NjI3MjJiNjU2NDU0YjQ1ODUyIiB9"
+      )
+    );
   });
 });
