@@ -1,6 +1,6 @@
 {
   "name": "internet-message-parser",
-  "version": "3.0.5",
+  "version": "3.0.6",
   "description": "Parse various things in an RFC-5322 Internet Message",
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",

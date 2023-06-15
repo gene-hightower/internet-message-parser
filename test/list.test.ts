@@ -57,7 +57,7 @@ describe("List Commands RFC-2369 ", () => {
              To: infoworld@digilicious.com
              List-Unsubscribe:
              	<mailto:mail.fskulktmheyrvinqxnzui@edt.cio.com?subject=Unsubscribe>, <https://foo.bar.baz/zzz-aaa>, <file:///tmp>
-             List-Unsubscribe: <mailto:unsubscribe@post.pinterest.com?subject=unsubscribe:tSmvKNfiPGld1vBYH2gHoC29CPLk-mWdyekB6Gwl4ioa~|eyAicmNwdF90byI6ICJ2Z3BldGVAZHVjay5jb20iLCAidGVuYW50X2lkIjogInBpbnRlcmVzdCIsICJjdXN0b21lcl9pZCI6ICIxIiwgInN1YmFjY291bnRfaWQiOiAiMCIsICJtZXNzYWdlX2lkIjogIjY0NjI3MjJiNjU2NDU0YjQ1ODUyIiB9>
+             List-Unsubscribe: <mailto:unsubscribe@example.com?subject=unsubscribe:x-y~|a{b}c>
              From: CIO Events <events@edt.cio.com>
              Date: Tue, 13 Jun 2023 19:17:23 +0100
              MIME-Version: 1.0
@@ -366,10 +366,6 @@ describe("List Commands RFC-2369 ", () => {
     expect(uris[2]).toEqual(new URL("file:///tmp"));
 
     const uris_1 = msg.hdr_idx["list-unsubscribe"][1].parsed;
-    expect(uris_1[0]).toEqual(
-      new URL(
-        "mailto:unsubscribe@post.pinterest.com?subject=unsubscribe:tSmvKNfiPGld1vBYH2gHoC29CPLk-mWdyekB6Gwl4ioa~|eyAicmNwdF90byI6ICJ2Z3BldGVAZHVjay5jb20iLCAidGVuYW50X2lkIjogInBpbnRlcmVzdCIsICJjdXN0b21lcl9pZCI6ICIxIiwgInN1YmFjY291bnRfaWQiOiAiMCIsICJtZXNzYWdlX2lkIjogIjY0NjI3MjJiNjU2NDU0YjQ1ODUyIiB9"
-      )
-    );
+    expect(uris_1[0]).toEqual(new URL("mailto:unsubscribe@example.com?subject=unsubscribe:x-y~|a{b}c"));
   });
 });
