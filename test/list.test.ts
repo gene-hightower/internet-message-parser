@@ -58,6 +58,8 @@ describe("List Commands RFC-2369 ", () => {
              List-Unsubscribe:
              	<mailto:mail.fskulktmheyrvinqxnzui@edt.cio.com?subject=Unsubscribe>, <https://foo.bar.baz/zzz-aaa>, <file:///tmp>
              List-Unsubscribe: <mailto:unsubscribe@example.com?subject=unsubscribe:x-y~|a{b}c>
+             List-Unsubscribe:
+               <https://duckduckgo.com:443/newsletter/subscription/unsubscribe/weekly/XXXXXXXXXX@hotmail.com>
              From: CIO Events <events@edt.cio.com>
              Date: Tue, 13 Jun 2023 19:17:23 +0100
              MIME-Version: 1.0
@@ -367,5 +369,8 @@ describe("List Commands RFC-2369 ", () => {
 
     const uris_1 = msg.hdr_idx["list-unsubscribe"][1].parsed;
     expect(uris_1[0]).toEqual(new URL("mailto:unsubscribe@example.com?subject=unsubscribe:x-y~|a{b}c"));
+
+    const uris_2 = msg.hdr_idx["list-unsubscribe"][2].parsed;
+    expect(uris_2[0]).toEqual(new URL("https://duckduckgo.com:443/newsletter/subscription/unsubscribe/weekly/XXXXXXXXXX@hotmail.com"));
   });
 });
