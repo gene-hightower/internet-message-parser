@@ -535,25 +535,38 @@ export class Message {
     // Convert body to “decoded” string.
     try {
       this.decoded = iconv.convert(body).toString();
+      return;
     } catch (e) {
       const ex = e as NodeJS.ErrnoException;
-      if (ex.code === "EILSEQ") {
-        ex.message = `Illegal character sequence decoding ${enc}, charset="${charset}"`;
-        if (charset.toLowerCase() !== "utf-8") {
-          try {
-            // Try again assuming UTF-8.
-            this.decoded = body.toString();
-            return;
-          } catch (ee) {
-            const eex = ee as NodeJS.ErrnoException;
-            if (eex.code === "EILSEQ") {
-              eex.message = `Illegal character sequence decoding ${enc}, charset="${charset}" or as UTF-8`;
-            }
+        if (ex.code !== "EILSEQ") {
+          throw ex;
+        }
+        // Ignore EILSEQ
+    }
+    if (charset.toLowerCase() !== "utf-8") {
+      try {
+        // Try again assuming UTF-8.
+        this.decoded = body.toString();
+        return;
+      } catch (ee) {
+          const eex = ee as NodeJS.ErrnoException;
+          if (eex.code !== "EILSEQ") {
             throw eex;
           }
+          // Ignore EILSEQ
         }
+    }
+    try {
+      const iconv_8859 = new Iconv("iso-8859-1", "utf-8");
+      this.decoded = iconv_8859.convert(body).toString();
+      return;
+    } catch (eee) {
+      const eeex = eee as NodeJS.ErrnoException;
+      if (eeex.code === "EILSEQ") {
+        // Should never happen, since all byte sequences are legal 8859.
+        eeex.message = `Illegal character sequence decoding ${enc}, charset="${charset}" or as 8859-1`;
       }
-      throw ex;
+      throw eeex;
     }
   }
 
