@@ -1,6 +1,12 @@
 import { Message, MessageType } from "../lib/Message";
 
 describe("address-list", () => {
+  it("another single addr-spec", () => {
+    const msg_text = Buffer.from(`From: "Write Brothers Inc." <wbi@screenplay.com> (mailto:wbi@screenplay.com)\r\n`);
+    const msg = new Message(msg_text, MessageType.part);
+    expect(msg.hdr_idx["from"][0].parsed);
+  });
+
   it("single addr-spec", () => {
     const msg_text = Buffer.from(`From: foo@example.com\r\n`);
     const msg = new Message(msg_text, MessageType.part);
