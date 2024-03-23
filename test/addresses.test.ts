@@ -7,6 +7,18 @@ describe("address-list", () => {
     expect(msg.hdr_idx["from"][0].parsed);
   });
 
+  it("another valid addr-spec", () => {
+    const msg_text = Buffer.from(`From: pete.(A nice \) chap)pecker@silly.test (his host is silly)\r\n`);
+    const msg = new Message(msg_text, MessageType.part);
+    expect(msg.hdr_idx["from"][0].parsed);
+  });
+
+  it("another valid but ugly addr-spec", () => {
+    const msg_text = Buffer.from(`From: (this *is* valid in RFC-5322 grammar and MUST be accepted and parsed by a conformant receiver.) just."not".right@example.com\r\n`);
+    const msg = new Message(msg_text, MessageType.part);
+    expect(msg.hdr_idx["from"][0].parsed);
+  });
+
   it("single addr-spec", () => {
     const msg_text = Buffer.from(`From: foo@example.com\r\n`);
     const msg = new Message(msg_text, MessageType.part);
