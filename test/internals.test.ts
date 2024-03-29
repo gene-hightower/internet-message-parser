@@ -22,6 +22,10 @@ describe("test internal methods of Message class", () => {
     const key = "received";
     expect(msg.hdr_idx[key].length).toEqual(3);
 
+    expect(msg.hdr_idx[key][0].parsed !== null);
+    expect(msg.hdr_idx[key][1].parsed === null); // missing ';' before date
+    expect(msg.hdr_idx[key][2].parsed !== null);
+
     msg._set_field(key, "for <foo@example.com> ; Tue, 14 Aug 2012 17:34:56 -0500 (CST)");
     msg.rewrite_headers();
 
