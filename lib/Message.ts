@@ -174,7 +174,7 @@ export class Message {
     // This regex is based on RFC-822 “simple field parsing”
     // specifically section “B.1. SYNTAX” but extended to accept byte
     // values in the range 128 to 255 to support UTF-8 encoding in the
-    // bodies of header fields as specified by RFC-6531.
+    // bodies of header fields as specified by RFC-6532.
 
     // See <https://datatracker.ietf.org/doc/html/rfc822#appendix-B.1>
 
